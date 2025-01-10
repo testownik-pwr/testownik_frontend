@@ -1,0 +1,11 @@
+.mh-1 {
+    min-height: 33.5rem;
+}
+
+.box {
+    overflow: auto;
+}
+
+button.answer {
+    text-wrap: initial;
+}
