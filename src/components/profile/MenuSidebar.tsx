@@ -1,12 +1,12 @@
 import React from "react";
-import { Nav, Card } from "react-bootstrap";
+import {Nav, Card} from "react-bootstrap";
 
 interface MenuSidebarProps {
     activeTab: string;
     onTabSelect: (tabKey: string | null) => void;
 }
 
-const MenuSidebar: React.FC<MenuSidebarProps> = ({ activeTab, onTabSelect }) => {
+const MenuSidebar: React.FC<MenuSidebarProps> = ({activeTab, onTabSelect}) => {
     return (
         <Card className="border-0 shadow">
             <Card.Body>

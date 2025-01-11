@@ -39,7 +39,9 @@ const App: React.FC = () => {
                         <Route path="/profile" element={<ProfilePage/>}/>
                     </Routes>
                 ) || (
-                    <LoginPrompt/>
+                    <Routes>s
+                        <Route path="*" element={<LoginPrompt/>}/>
+                    </Routes>
                 )}
             </Router>
         </div>

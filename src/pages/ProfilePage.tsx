@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useContext} from "react";
-import { Container, Row, Col, Tab } from "react-bootstrap";
+import {Container, Row, Col, Tab} from "react-bootstrap";
 import MenuSidebar from "../components/profile/MenuSidebar.tsx";
 import ProfileDetails from "../components/profile/ProfileDetails.tsx";
 import SettingsForm from "../components/profile/SettingsForm.tsx";
@@ -50,8 +50,8 @@ const ProfilePage: React.FC = () => {
     };
 
     const handleSettingChange = (name: keyof SettingsData, value: boolean | number) => {
-        setSettings({ ...settings, [name]: value });
-        appContext.axiosInstance.put("/settings/", { [name]: value })
+        setSettings({...settings, [name]: value});
+        appContext.axiosInstance.put("/settings/", {[name]: value})
             .then((res) => console.log("Settings updated:", res.data))
             .catch((err) => console.error("Error updating settings:", err));
     };
@@ -61,11 +61,11 @@ const ProfilePage: React.FC = () => {
         <Container className="mt-4">
             <Row>
                 <Col md={4}>
-                    <MenuSidebar activeTab={activeTab} onTabSelect={handleTabSelect} />
+                    <MenuSidebar activeTab={activeTab} onTabSelect={handleTabSelect}/>
                 </Col>
                 <Col md={8}>
                     <Tab.Content>
-                        {activeTab === "account" && <ProfileDetails userData={userData} loading={!userData} />}
+                        {activeTab === "account" && <ProfileDetails userData={userData} loading={!userData}/>}
                         {activeTab === "settings" && (
                             <SettingsForm
                                 settings={settings}

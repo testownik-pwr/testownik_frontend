@@ -30,4 +30,12 @@ export class AppTheme {
     getOppositeTheme(): Theme {
         return this.isDark() ? Theme.LIGHT : Theme.DARK;
     }
+
+    getThemeColor(): string {
+        return this.isDark() ? "#000" : "#fff";
+    }
+
+    getOppositeThemeColor(): string {
+        return this.isDark() ? "#fff" : "#000";
+    }
 }

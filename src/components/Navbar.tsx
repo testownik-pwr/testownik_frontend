@@ -3,7 +3,7 @@ import React, {useContext} from 'react';
 import {Navbar as BSNavbar, Nav, Container, Button} from 'react-bootstrap';
 import {Icon} from "@iconify/react";
 import AppContext from "../AppContext.tsx";
-import {BASE_URL} from "../config.ts";
+import {SERVER_URL} from "../config.ts";
 
 const Navbar: React.FC = () => {
     const appContext = useContext(AppContext);
@@ -39,7 +39,7 @@ const Navbar: React.FC = () => {
                         <Nav.Link href="/quizzes">Twoje bazy</Nav.Link>
                         <Nav.Link href="/grades">Oceny</Nav.Link>
                         {localStorage.getItem("is_staff") === "true" && (
-                            <Nav.Link href={BASE_URL + "/admin/"} target={"_blank"}>Panel administratora</Nav.Link>
+                            <Nav.Link href={SERVER_URL + "/admin/"} target={"_blank"}>Panel administratora</Nav.Link>
                         )}
                     </Nav>
                     <Nav>
@@ -70,7 +70,7 @@ const Navbar: React.FC = () => {
                                 </Nav.Link>
                             </>
                         ) : (
-                            <Nav.Link href={`${BASE_URL}/login/usos?jwt=true&redirect=${document.location}`}>
+                            <Nav.Link href={`${SERVER_URL}/login/usos?jwt=true&redirect=${document.location}`}>
                                 <Button variant={appContext.theme.getOppositeTheme()}
                                         className="d-inline-flex gap-1 align-items-center">
                                     <Icon icon="bi:box-arrow-in-right"></Icon>

@@ -21,7 +21,8 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({userData, loading}) => {
     return (
         <Card className="border-0 shadow">
             {loading && (
-                <Placeholder className="d-flex flex-column align-items-center text-nowrap" as={Card.Body} animation="wave">
+                <Placeholder className="d-flex flex-column align-items-center text-nowrap" as={Card.Body}
+                             animation="wave">
                     <div className="d-flex justify-content-center m-3">
                         <PuffLoader color="#4c6ef5" size="6em"/>
                     </div>
@@ -49,15 +50,15 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({userData, loading}) => {
                     <h1 className="mt-3">{userData?.full_name}</h1>
                     <h2 className="text-muted">{userData?.student_number}</h2>
                     {(userData?.is_superuser || userData?.is_staff) && (
-                    <div className="d-flex gap-2">
-                        {userData?.is_superuser && (
-                            <Badge bg="danger" className="bg-opacity-25 text-danger">Administrator</Badge>
-                        )}
-                        {userData?.is_staff && (
-                            <Badge bg="warning" className="bg-opacity-25 text-warning">Obsługa</Badge>
-                        )}
-                        <Badge bg="success" className="bg-opacity-25 text-success">Student</Badge>
-                    </div>
+                        <div className="d-flex gap-2">
+                            {userData?.is_superuser && (
+                                <Badge bg="danger" className="bg-opacity-25 text-danger">Administrator</Badge>
+                            )}
+                            {userData?.is_staff && (
+                                <Badge bg="warning" className="bg-opacity-25 text-warning">Obsługa</Badge>
+                            )}
+                            <Badge bg="success" className="bg-opacity-25 text-success">Student</Badge>
+                        </div>
                     ) || (
                         <Badge bg="success" className="bg-opacity-25 text-success">Student</Badge>
                     )}

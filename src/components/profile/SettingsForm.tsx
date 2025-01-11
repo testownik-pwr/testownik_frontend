@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, Table, Form } from "react-bootstrap";
+import {Card, Table, Form} from "react-bootstrap";
 
 interface SettingsData {
     sync_progress: boolean;
@@ -12,7 +12,7 @@ interface SettingsFormProps {
     onSettingChange: (name: keyof SettingsData, value: boolean | number) => void;
 }
 
-const SettingsForm: React.FC<SettingsFormProps> = ({ settings, onSettingChange }) => {
+const SettingsForm: React.FC<SettingsFormProps> = ({settings, onSettingChange}) => {
     return (
         <Card className="border-0 shadow">
             <Card.Body>

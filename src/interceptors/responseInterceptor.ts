@@ -1,7 +1,7 @@
 import axios, {InternalAxiosRequestConfig} from 'axios';
 import {AxiosError} from 'axios';
 
-import {BASE_URL} from '../config';
+import {SERVER_URL} from '../config';
 
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
@@ -49,7 +49,7 @@ const responseInterceptor = async (error: AxiosError) => {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
             try {
-                const response = await axios.post(`${BASE_URL}/api/token/refresh/`, {refresh: refreshToken});
+                const response = await axios.post(`${SERVER_URL}/api/token/refresh/`, {refresh: refreshToken});
                 const newToken = response.data.access;
                 const newRefreshToken = response.data.refresh;
                 localStorage.setItem('access_token', newToken);

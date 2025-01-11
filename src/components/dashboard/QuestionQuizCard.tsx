@@ -1,7 +1,6 @@
 import React, {useState, useEffect, useContext} from "react";
-import { Card, Button } from "react-bootstrap";
+import {Card, Button} from "react-bootstrap";
 import AppContext from "../../AppContext.tsx";
-
 
 interface Answer {
     answer: string;
@@ -19,6 +18,7 @@ interface Question {
 const QuestionQuizCard: React.FC = () => {
     const appContext = useContext(AppContext);
     const [questionData, setQuestionData] = useState<Question | null>(null);
+    const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [enableEdit, setEnableEdit] = useState<boolean>(false);
     const [result, setResult] = useState<string | null>(null);
 
@@ -35,6 +35,7 @@ const QuestionQuizCard: React.FC = () => {
             }
             const data: Question = response.data;
             setQuestionData(data);
+            setSelectedAnswers([]);
             setEnableEdit(true);
             setResult(null);
         } catch {
@@ -42,27 +43,25 @@ const QuestionQuizCard: React.FC = () => {
         }
     };
 
+    const toggleAnswer = (index: number) => {
+        if (!enableEdit) return;
+        setSelectedAnswers((prev) =>
+            prev.includes(index)
+                ? prev.filter((i) => i !== index)
+                : [...prev, index]
+        );
+    };
+
     const checkAnswers = () => {
         if (!questionData) return;
 
-        const answers = document.querySelectorAll<HTMLButtonElement>(".answer");
         let isCorrect = true;
 
-        answers.forEach((answer) => {
-            const isSelected = answer.classList.contains("active");
-            const isCorrectAnswer = answer.dataset.correct === "true";
-
-            if (isSelected && !isCorrectAnswer) {
+        questionData.answers.forEach((answer, idx) => {
+            const isSelected = selectedAnswers.includes(idx);
+            if ((isSelected && !answer.correct) || (!isSelected && answer.correct)) {
                 isCorrect = false;
-                answer.classList.add("btn-danger");
-            } else if (!isSelected && isCorrectAnswer) {
-                isCorrect = false;
-                answer.classList.add("btn-success", "opacity-50");
-            } else if (isSelected && isCorrectAnswer) {
-                answer.classList.add("btn-success");
             }
-
-            answer.classList.remove("active");
         });
 
         setResult(isCorrect ? "Poprawna odpowiedź!" : "Niepoprawna odpowiedź.");
@@ -75,20 +74,28 @@ const QuestionQuizCard: React.FC = () => {
                 {questionData ? (
                     <div>
                         <small className="text-muted">Powtórz to jeszcze raz:</small>
-                        <h5 className="card-title mb-0 text-secondary">{questionData.question}</h5>
-                        <a href={`/quizzes/${questionData.quiz_id}/`} className="small text-secondary">
+                        <h5 className="card-title mb-0">{questionData.question}</h5>
+                        <a href={`/quizzes/${questionData.quiz_id}/`}
+                           className="small text-decoration-none text-secondary">
                             {questionData.quiz_title}
                         </a>
-                        <div className="d-grid gap-2 mt-3">
+                        <div className="d-grid gap-2 mt-3 overflow-y-auto" style={{maxHeight: "30rem"}}>
                             {questionData.answers.map((answer, idx) => (
                                 <Button
                                     key={idx}
-                                    className={`btn btn-${appContext.theme.getTheme()} btn-sm w-100 answer`}
-                                    data-correct={answer.correct}
-                                    onClick={(e) => {
-                                        if (!enableEdit) return;
-                                        e.currentTarget.classList.toggle("active");
-                                    }}
+                                    className={`w-100 ${selectedAnswers.includes(idx) ? "active" : ""} ${result && answer.correct && !selectedAnswers.includes(idx) ? "opacity-50" : ""}`}
+                                    size="sm"
+                                    variant={
+                                        result
+                                            ? answer.correct
+                                                ? "success"
+                                                : selectedAnswers.includes(idx)
+                                                    ? "danger"
+                                                    : "secondary"
+                                            : appContext.theme.getTheme()
+                                    }
+                                    onClick={() => toggleAnswer(idx)}
+                                    disabled={!enableEdit}
                                 >
                                     {answer.answer}
                                 </Button>
@@ -100,16 +107,20 @@ const QuestionQuizCard: React.FC = () => {
                             </h5>
                         )}
                         <div className="d-flex justify-content-end mt-2">
-                            <Button className="btn btn-outline-secondary btn-sm" onClick={checkAnswers} disabled={!enableEdit}>
-                                Sprawdź odpowiedź
-                            </Button>
-                            <Button
-                                className="btn btn-outline-secondary btn-sm ms-2"
-                                onClick={fetchQuestion}
-                                disabled={enableEdit}
-                            >
-                                Następne pytanie
-                            </Button>
+                            {enableEdit ? (
+                                <Button variant={appContext.theme.getOppositeTheme()} size="sm" onClick={checkAnswers}>
+                                    Sprawdź odpowiedź
+                                </Button>
+                            ) : (
+                                <Button
+                                    className="ms-2"
+                                    variant={appContext.theme.getOppositeTheme()}
+                                    size="sm"
+                                    onClick={fetchQuestion}
+                                >
+                                    Następne pytanie
+                                </Button>
+                            )}
                         </div>
                     </div>
                 ) : (

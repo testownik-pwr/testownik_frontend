@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { Card, Table } from "react-bootstrap";
+import React, {useContext, useEffect, useState} from "react";
+import {Card, Table} from "react-bootstrap";
+import AppContext from "../../AppContext.tsx";
 
 interface Quiz {
     id: number;
@@ -7,6 +8,7 @@ interface Quiz {
 }
 
 const LastUsedCard: React.FC = () => {
+    const appContext = useContext(AppContext);
     const [lastUsedQuizzes, setLastUsedQuizzes] = useState<Quiz[]>([]);
 
     useEffect(() => {
@@ -15,8 +17,8 @@ const LastUsedCard: React.FC = () => {
 
     const fetchLastUsedQuizzes = async () => {
         try {
-            const response = await fetch("/api/last-used-quizzes/");
-            const data: Quiz[] = await response.json();
+            const response = await appContext.axiosInstance.get("/last-used-quizzes/");
+            const data: Quiz[] = response.data;
             setLastUsedQuizzes(data);
         } catch {
             setLastUsedQuizzes([]);
@@ -24,17 +26,20 @@ const LastUsedCard: React.FC = () => {
     };
 
     return (
-        <Card className="border-0 shadow h-50">
+        <Card className="border-0 shadow flex-fill">
             <Card.Body>
                 <h5 className="card-title mb-3">Ostatnio używane</h5>
-                <div style={{ overflowY: "auto", maxHeight: "11rem" }}>
+                <div style={{overflowY: "auto", maxHeight: "11.25rem"}}>
                     <Table>
                         <tbody>
                         {lastUsedQuizzes.length > 0 ? (
                             lastUsedQuizzes.map((quiz) => (
                                 <tr key={quiz.id}>
                                     <td>
-                                        <a href={`/quizzes/${quiz.id}/`}>{quiz.title}</a>
+                                        <a href={`/quiz/${quiz.id}/`}
+                                           className={"text-decoration-none text-" + appContext.theme.getOppositeTheme()}>
+                                            {quiz.title}
+                                        </a>
                                     </td>
                                 </tr>
                             ))

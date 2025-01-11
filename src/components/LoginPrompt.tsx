@@ -1,20 +1,19 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { Card, Button, Modal } from 'react-bootstrap';
-import { useLocation , useNavigate} from 'react-router-dom';
+import React, {useCallback, useContext, useEffect, useState} from 'react';
+import {Card, Button, Modal} from 'react-bootstrap';
+import {useLocation, useNavigate} from 'react-router-dom';
 import GridLoader from "react-spinners/GridLoader";
 import '../styles/loginPrompt.css';
 import AppContext from "../AppContext.tsx";
-import {BASE_URL} from "../config.ts";
+import {SERVER_URL} from "../config.ts";
 
 const LoginPrompt: React.FC = () => {
     const appContext = useContext(AppContext);
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
     const queryParams = new URLSearchParams(location.search);
     const accessToken = queryParams.get('access_token');
     const refreshToken = queryParams.get('refresh_token');
-    const next = queryParams.get('next');
-    const navigate = useNavigate();
 
     const fetchUserData = useCallback(async () => {
         try {
@@ -36,13 +35,16 @@ const LoginPrompt: React.FC = () => {
             localStorage.setItem("access_token", accessToken);
             localStorage.setItem("refresh_token", refreshToken);
 
+            queryParams.delete('access_token');
+            queryParams.delete('refresh_token');
+
+            navigate({
+                search: queryParams.toString(),
+            });
+
             await fetchUserData();
-
-            console.log(`Redirecting to ${next ?? "/"}`);
-
-            navigate(next ?? "/");
         }
-    }, [accessToken, refreshToken, fetchUserData, navigate, next]);
+    }, [accessToken, refreshToken, fetchUserData]);
 
 
     useEffect(() => {
@@ -57,7 +59,7 @@ const LoginPrompt: React.FC = () => {
                         <Card.Text className="text-success fs-4">
                             Zalogowano pomyślnie!
                         </Card.Text>
-                        <GridLoader color="#0d6efd" loading={true} size={150} />
+                        <GridLoader color={appContext.theme.getOppositeThemeColor()} loading={true} size={15}/>
                         <Card.Text className="text-muted mt-2">
                             Pobieranie twoich danych...
                         </Card.Text>
@@ -72,7 +74,7 @@ const LoginPrompt: React.FC = () => {
                         <Card.Text>
                             Obecnie dostęp do Testownika mają tylko studenci Politechniki Wrocławskiej.
                         </Card.Text>
-                        <Button href={`${BASE_URL}/login/usos?jwt=true&redirect=${document.location}`}
+                        <Button href={`${SERVER_URL}/login/usos?jwt=true&redirect=${document.location}`}
                                 variant="primary" className="w-100">Zaloguj się</Button>
                         <div className="text-center mt-2">
                             <a href="#" className="fs-6 link-secondary" onClick={() => setShowPrivacyModal(true)}>
@@ -82,16 +84,15 @@ const LoginPrompt: React.FC = () => {
                     </Card.Body>
                 )}
             </Card>
-            <Modal fade id="privacyModal" tabIndex={-1} aria-labelledby="privacyModalLabel" aria-hidden="true"
+            <Modal id="privacyModal" tabIndex={-1} aria-labelledby="privacyModalLabel" aria-hidden="true"
                    show={showPrivacyModal} onHide={() => setShowPrivacyModal(false)}>
-                <Modal.Header>
+                <Modal.Header closeButton>
                     <Modal.Title id="privacyModalLabel">Jak przetwarzamy Twoje dane</Modal.Title>
-                    <Button variant="close" data-bs-dismiss="modal" aria-label="Close"></Button>
                 </Modal.Header>
                 <Modal.Body>
                     <p>Testownik korzysta z Twoich danych z USOS, aby móc zidentyfikować Cię jako studenta PWr i
                         zapewnić Ci dostęp do odpowiednich funkcji.</p>
-                    <br />
+                    <br/>
                     <p>Lista danych, które otrzymujemy od USOS oraz w jaki sposób je przetwarzamy:</p>
                     <ul>
                         <li><code>default</code> - Twoje podstawowe dane, takie jak imię, nazwisko oraz status

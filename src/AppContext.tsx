@@ -1,7 +1,7 @@
 import React, {createContext, useState} from 'react';
 import {AppTheme} from "./Theme.tsx";
 import axios, {AxiosInstance} from "axios";
-import {BASE_URL} from './config';
+import {SERVER_URL} from './config';
 import requestInterceptor from "./interceptors/requestInterceptor.ts";
 import responseInterceptor, {RefreshTokenExpiredError} from "./interceptors/responseInterceptor.ts";
 
@@ -13,7 +13,7 @@ export interface AppContextType {
 }
 
 const axiosInstance = axios.create({
-    baseURL: BASE_URL + "/api",
+    baseURL: SERVER_URL + "/api",
     headers: {
         'Content-Type': 'application/json',
     },
