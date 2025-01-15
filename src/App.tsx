@@ -1,12 +1,13 @@
-import React, {useContext, useEffect, useState} from 'react';
-import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import DashboardPage from './pages/DashboardPage.tsx';
 import Navbar from "./components/Navbar.tsx";
 import AppContext from "./AppContext.tsx";
-import {Theme} from "./Theme.tsx";
+import { Theme } from "./Theme.tsx";
 import LoginPrompt from "./components/LoginPrompt.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import Error404Page from "./pages/errors/Error404Page.tsx";
+import QuizPage from "./pages/QuizPage.tsx";
 import ImportQuizPage from "./pages/ImportQuizPage.tsx";
 import ImportQuizLegacyPage from "./pages/ImportQuizLegacyPage.tsx";
 import CreateQuizPage from "./pages/CreateQuizPage.tsx";
@@ -14,22 +15,20 @@ import EditQuizPage from "./pages/EditQuizPage.tsx";
 import QuizzesPage from "./pages/QuizzesPage.tsx";
 import SearchInQuizPage from "./pages/SearchInQuizPage.tsx";
 
-
 const useThemeDetector = () => {
     const getCurrentTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
     const [theme, setTheme] = useState(getCurrentTheme() ? Theme.DARK : Theme.LIGHT);
-    const mqListener = ((e: { matches: boolean | ((prevState: boolean) => boolean); }) => {
+    const mqListener = (e: { matches: boolean }) => {
         setTheme(e.matches ? Theme.DARK : Theme.LIGHT);
-    });
+    };
 
     useEffect(() => {
         const darkThemeMq = window.matchMedia("(prefers-color-scheme: dark)");
         darkThemeMq.addEventListener("change", mqListener);
         return () => darkThemeMq.removeEventListener("change", mqListener);
     }, [theme]);
-    return theme
-}
-
+    return theme;
+};
 
 const App: React.FC = () => {
     const context = useContext(AppContext);
@@ -39,7 +38,7 @@ const App: React.FC = () => {
     return (
         <div className="container d-flex flex-column" id="container">
             <Router>
-                <Navbar/>
+                <Navbar />
                 {context.isAuthenticated && (
                     <Routes>
                         <Route path="/" element={<DashboardPage/>}/>
@@ -54,7 +53,8 @@ const App: React.FC = () => {
                     </Routes>
                 ) || (
                     <Routes>
-                        <Route path="*" element={<LoginPrompt/>}/>
+                        <Route path="/quiz/:id" element={<QuizPage />} />
+                        <Route path="*" element={<LoginPrompt />} />
                     </Routes>
                 )}
             </Router>

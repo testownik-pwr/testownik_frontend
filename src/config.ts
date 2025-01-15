@@ -1,1 +1,1 @@
-export const SERVER_URL = "https://testownik.eu.pythonanywhere.com";
+export const SERVER_URL = "http://localhost:8000";
