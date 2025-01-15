@@ -2,7 +2,7 @@ import React, {useCallback, useContext, useEffect, useState} from 'react';
 import {Card, Button, Modal} from 'react-bootstrap';
 import {useLocation, useNavigate} from 'react-router-dom';
 import GridLoader from "react-spinners/GridLoader";
-import '../styles/loginPrompt.css';
+import '../styles/LoginPrompt.css';
 import AppContext from "../AppContext.tsx";
 import {SERVER_URL} from "../config.ts";
 
