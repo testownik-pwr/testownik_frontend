@@ -55,6 +55,12 @@ interface QuizMetadata {
     version: number;
 }
 
+interface SharedQuiz {
+    id: number;
+    quiz: string;
+    user: User;
+    group: Group;
+}
 
 const ShareQuizModal: React.FC<ShareQuizModalProps> = ({show, onHide, quizId, quizTitle}) => {
     const appContext = useContext(AppContext);
@@ -75,9 +81,9 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({show, onHide, quizId, qu
             setInputWidth(inputRef.current.clientWidth);
             inputRef.current.addEventListener("click", () => setInputWidth(inputRef.current!.clientWidth));
         }
-        fetchQuizMetadata();
-        fetchGroups()
-        fetchAccess();
+        setLoading(true);
+        Promise.all([fetchQuizMetadata(), fetchGroups(), fetchAccess()])
+            .finally(() => setLoading(false));
     }, []);
 
     const fetchQuizMetadata = async () => {
@@ -96,8 +102,8 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({show, onHide, quizId, qu
         try {
             const response = await appContext.axiosInstance.get(`/shared-quizzes/?quiz=${quizId}`);
             console.log(response.data);
-            setUsersWithAccess(response.data.users);
-            setGroupsWithAccess(response.data.groups);
+            setUsersWithAccess(response.data.flatMap((sharedQuiz: SharedQuiz) => sharedQuiz.user ? [sharedQuiz.user] : []));
+            setGroupsWithAccess(response.data.flatMap((sharedQuiz: SharedQuiz) => sharedQuiz.group ? [sharedQuiz.group] : []));
         } catch {
             setUsersWithAccess([]);
             setGroupsWithAccess([]);
@@ -212,29 +218,74 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({show, onHide, quizId, qu
                 <h6>Osoby z dostępem:</h6>
                 <div className="d-flex flex-wrap gap-2" style={{maxHeight: "10rem", overflowY: "auto"}}>
                     {loading ? (
-                        <div className="d-flex justify-content-center">
+                        <div className="d-flex justify-content-center w-100 mt-1 mb-3">
                             <PropagateLoader color={appContext.theme.getOppositeThemeColor()} size={10}/>
                         </div>
-                    ) : quizMetadata?.maintainer ? (
+                    ) : (
                         <>
-                            <div key={quizMetadata?.maintainer.id}
-                                 className={`d-flex justify-content-between align-items-center w-100 p-2 rounded bg-${appContext.theme.getTheme()}`}>
-                                <div className="d-flex align-items-center gap-2">
-                                    <img src={quizMetadata?.maintainer.photo_url} alt="avatar"
-                                         className="rounded-circle" width="32"
-                                         height="32"/>
-                                    <div>
-                                        <p className="m-0">{quizMetadata?.maintainer.full_name}</p>
+                            {quizMetadata?.maintainer && (
+                                <div key={quizMetadata?.maintainer.id}
+                                     className={`d-flex justify-content-between align-items-center w-100 p-2 rounded bg-${appContext.theme.getTheme()}`}>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <img src={quizMetadata?.maintainer.photo_url} alt="avatar"
+                                             className="rounded-circle" width="32"
+                                             height="32"/>
+                                        <div>
+                                            <p className="m-0">{quizMetadata?.maintainer.full_name}</p>
+                                        </div>
+                                    </div>
+                                    <div onClick={() => setQuizMetadata({
+                                        ...quizMetadata,
+                                        is_anonymous: !quizMetadata.is_anonymous
+                                    })}>
+                                        {quizMetadata.is_anonymous ? (
+                                            <Icon icon="mdi:incognito"
+                                                  className="text-white bg-danger-subtle rounded-circle p-1" width="32"
+                                                  height="32"/>
+                                        ) : (
+                                            <Icon icon="mdi:account"
+                                                  className="text-white bg-info-subtle rounded-circle p-1" width="32"
+                                                  height="32"/>
+                                        )}
                                     </div>
                                 </div>
-                                <div>
-                                    <Button size="sm"
-                                            className="text-danger bg-danger bg-opacity-25 text-danger border-0">Usuń</Button>
+                            )}
+                            {usersWithAccess.map((user) => (
+                                <div key={user.id}
+                                     className={`d-flex justify-content-between align-items-center w-100 p-2 rounded bg-${appContext.theme.getTheme()}`}>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <img src={user.photo_url} alt="avatar" className="rounded-circle" width="32"
+                                             height="32"/>
+                                        <div>
+                                            <p className="m-0">{user.full_name}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Button size="sm"
+                                                className="text-danger bg-danger bg-opacity-25 text-danger border-0">Usuń</Button>
+                                    </div>
                                 </div>
-                            </div>
+                            ))
+                            }
+                            {groupsWithAccess.map((group) => (
+                                <div key={group.id}
+                                     className={`d-flex justify-content-between align-items-center w-100 p-2 rounded bg-${appContext.theme.getTheme()}`}>
+                                    <div className="d-flex align-items-center gap-2">
+                                        <img src={group.photo_url} alt="avatar" className="rounded-circle"
+                                             width="32"
+                                             height="32"/>
+                                        <div>
+                                            <p className="m-0">{group.name}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <Button size="sm"
+                                                className="text-danger bg-danger bg-opacity-25 text-danger border-0">Usuń</Button>
+                                    </div>
+                                </div>
+                            ))
+                            }
                         </>
-                    ) : (
-                        <p>Brak osób z dostępem</p>
                     )}
                 </div>
                 <h6>Poziom dostępu:</h6>
