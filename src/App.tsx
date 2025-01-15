@@ -7,7 +7,7 @@ import {Theme} from "./Theme.tsx";
 import LoginPrompt from "./components/LoginPrompt.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import Error404Page from "./pages/errors/Error404Page.tsx";
-
+import GradesPage from "./pages/GradesPage.tsx";
 
 const useThemeDetector = () => {
     const getCurrentTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -38,6 +38,7 @@ const App: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<DashboardPage/>}/>
                         <Route path="/profile" element={<ProfilePage/>}/>
+                        <Route path="/grades" element={<GradesPage/>}/>
                         <Route path="*" element={<Error404Page/>}/>
                     </Routes>
                 ) || (
