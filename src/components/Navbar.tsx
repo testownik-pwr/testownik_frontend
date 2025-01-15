@@ -13,6 +13,7 @@ const Navbar: React.FC = () => {
         localStorage.removeItem("refresh_token");
         localStorage.removeItem("profile_picture");
         localStorage.removeItem("is_staff");
+        localStorage.removeItem("user_id");
         appContext.setAuthenticated(false);
     }
 

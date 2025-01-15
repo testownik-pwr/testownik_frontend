@@ -39,6 +39,11 @@ const AboutCard: React.FC = () => {
 
             const coreData = await coreResponse.json();
             const frontendData = await frontendResponse.json();
+
+            if (coreData.message || frontendData.message) {
+                throw new Error("API rate limit exceeded");
+            }
+
             // merge data from both repositories and if there are any duplicates, sum their contributions
             const data = coreData.concat(frontendData).reduce((acc: Contributor[], contributor: Contributor) => {
                 const existingContributor = acc.find((c) => c.login === contributor.login);

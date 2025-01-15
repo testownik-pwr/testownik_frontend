@@ -7,6 +7,10 @@
         background-color: #0d1117 !important;
     }
 
+    .modal-content {
+        background-color: #0d1117 !important;
+    }
+
     .table > :not(caption) > * > * {
         background-color: transparent !important;
     }

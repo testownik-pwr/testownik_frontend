@@ -44,6 +44,7 @@ const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({children})
         if (error instanceof RefreshTokenExpiredError) {
             localStorage.removeItem("profile_picture");
             localStorage.removeItem("is_staff");
+            localStorage.removeItem("user_id");
             context.setAuthenticated(false);
         }
         return Promise.reject(error);

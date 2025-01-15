@@ -24,6 +24,7 @@ const LoginPrompt: React.FC = () => {
             const userData = response.data;
             localStorage.setItem("profile_picture", userData.photo_url);
             localStorage.setItem("is_staff", userData.is_staff);
+            localStorage.setItem("user_id", userData.id);
             appContext.setAuthenticated(true);
         } catch {
             console.error("Failed to fetch user data");

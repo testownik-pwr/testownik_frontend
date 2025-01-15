@@ -71,8 +71,8 @@ const SearchCard: React.FC = () => {
                                             <a href={`/quiz/${result.id}/`}
                                                className={"text-decoration-none text-" + appContext.theme.getOppositeTheme()}>
                                                 {result.title}
-                                                <soan
-                                                    className="link-secondary"> by {result.is_anonymous ? "anonim" : result.maintainer}</soan>
+                                                <span
+                                                    className="link-secondary"> by {result.is_anonymous ? "anonim" : result.maintainer}</span>
                                             </a>
                                         </td>
                                     </tr>

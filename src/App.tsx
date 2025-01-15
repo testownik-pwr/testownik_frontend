@@ -6,6 +6,7 @@ import AppContext from "./AppContext.tsx";
 import {Theme} from "./Theme.tsx";
 import LoginPrompt from "./components/LoginPrompt.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
+import Error404Page from "./pages/errors/Error404Page.tsx";
 
 
 const useThemeDetector = () => {
@@ -37,9 +38,10 @@ const App: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<DashboardPage/>}/>
                         <Route path="/profile" element={<ProfilePage/>}/>
+                        <Route path="*" element={<Error404Page/>}/>
                     </Routes>
                 ) || (
-                    <Routes>s
+                    <Routes>
                         <Route path="*" element={<LoginPrompt/>}/>
                     </Routes>
                 )}
