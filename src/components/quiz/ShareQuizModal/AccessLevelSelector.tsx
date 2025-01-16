@@ -1,5 +1,5 @@
 import React from "react";
-import "../../styles/AccessLevelSelector.css";
+import "../../../styles/AccessLevelSelector.css";
 import {Icon} from "@iconify/react";
 
 interface AccessLevelSelectorProps {
