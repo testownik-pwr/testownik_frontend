@@ -42,6 +42,7 @@ const ImportQuizPage: React.FC = () => {
             const file = fileInputRef.current?.files?.[0];
             if (!file) {
                 setError('Wybierz plik z quizem.');
+                setLoading(false);
                 return;
             }
             const reader = new FileReader();
@@ -58,6 +59,7 @@ const ImportQuizPage: React.FC = () => {
             const linkInput = (document.getElementById('link-input') as HTMLInputElement)?.value;
             if (!linkInput) {
                 setError('Wklej link do quizu.');
+                setLoading(false);
                 return;
             }
             try {
@@ -70,6 +72,7 @@ const ImportQuizPage: React.FC = () => {
             const textInput = (document.getElementById('text-input') as HTMLTextAreaElement)?.value;
             if (!textInput) {
                 setError('Wklej quiz w formie tekstu.');
+                setLoading(false);
                 return;
             }
             try {

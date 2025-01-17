@@ -3,7 +3,6 @@ import React, {
     useContext,
     useEffect,
     useState,
-    useRef,
 } from "react";
 import {Modal, Button, Form, OverlayTrigger, Tooltip, Alert} from "react-bootstrap";
 import {Icon} from "@iconify/react";
@@ -46,18 +45,17 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
     const [searchResultsLoading, setSearchResultsLoading] = useState(false);
     const [userGroups, setUserGroups] = useState<Group[]>([]);
 
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useCallback((node: HTMLInputElement | null) => {
+        if (node !== null) {
+            setInputWidth(node.clientWidth);
+            node.addEventListener("click", () => {
+                setInputWidth(node.clientWidth);
+            });
+        }
+    }, []);
     const [inputWidth, setInputWidth] = useState(0);
 
     useEffect(() => {
-        if (inputRef.current) {
-            setInputWidth(inputRef.current.clientWidth);
-            inputRef.current.addEventListener("click", () => {
-                if (inputRef.current) {
-                    setInputWidth(inputRef.current.clientWidth);
-                }
-            });
-        }
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -339,7 +337,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
                         />
                     }
                     placement="bottom"
-                    show={searchQuery.length > 0}
+                    show={searchQuery.length > 0 && show}
                 >
                     <Form.Control
                         placeholder="Wpisz imię/nazwisko, grupę lub numer indeksu..."

@@ -45,7 +45,7 @@ const QuizPreviewModal: React.FC<QuizPreviewModalProps> = ({show, onHide, quiz, 
                         <>
                             <h5>{title}</h5>
                             <p className="text-muted">{description || 'Brak opisu'}</p>
-                            <h6>Pytania (pierwsze 10, łącznie: {questions.length})</h6>
+                            <h6>Pytania {questions.length > 10 ? `(pierwsze 10, łącznie ${questions.length})` : `(${questions.length})`}: </h6>
                             <div style={{maxHeight: '20rem', overflowY: 'auto'}}>
                                 {previewQuestions.map((question) => (
                                     <Card key={question.id}

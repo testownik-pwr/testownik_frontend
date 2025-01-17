@@ -154,6 +154,7 @@ const ImportQuizLegacyPage: React.FC = () => {
 
             if (questions.length === 0) {
                 setError('Nie znaleziono pytań w wybranych plikach.');
+                setLoading(false);
                 return;
             }
 
