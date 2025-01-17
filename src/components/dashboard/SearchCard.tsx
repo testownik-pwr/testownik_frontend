@@ -68,7 +68,7 @@ const SearchCard: React.FC = () => {
                                 searchResults.map((result) => (
                                     <tr key={result.id}>
                                         <td>
-                                            <a href={`/quiz/${result.id}/`}
+                                            <a href={`/quiz/${result.id}`}
                                                className={"text-decoration-none text-" + appContext.theme.getOppositeTheme()}>
                                                 {result.title}
                                                 <span

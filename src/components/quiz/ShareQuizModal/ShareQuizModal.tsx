@@ -19,19 +19,16 @@ import {QuizMetadata} from "../types.ts";
 interface ShareQuizModalProps {
     show: boolean;
     onHide: () => void;
-    quizId: string;
-    quizTitle: string;
+    quiz: QuizMetadata;
 }
 
 const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
                                                            show,
                                                            onHide,
-                                                           quizId,
-                                                           quizTitle,
+                                                           quiz,
                                                        }) => {
     const appContext = useContext(AppContext);
 
-    const [quizMetadata, setQuizMetadata] = useState<QuizMetadata | null>(null);
     const [accessLevel, setAccessLevel] = useState<AccessLevel>(AccessLevel.PRIVATE);
     const [loading, setLoading] = useState(false);
 
@@ -39,6 +36,8 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
     const [initialGroupsWithAccess, setInitialGroupsWithAccess] = useState<Group[]>([]);
     const [usersWithAccess, setUsersWithAccess] = useState<User[]>([]);
     const [groupsWithAccess, setGroupsWithAccess] = useState<Group[]>([]);
+    const [isMaintainerAnonymous, setIsMaintainerAnonymous] = useState(false);
+    const [allowAnonymous, setAllowAnonymous] = useState(false);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<(User | Group)[]>([]);
@@ -64,7 +63,6 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
         setLoading(true);
         try {
             await Promise.all([
-                fetchQuizMetadata(),
                 fetchUserGroups(),
                 fetchAccess(),
             ]);
@@ -75,22 +73,10 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
         }
     };
 
-    const fetchQuizMetadata = async () => {
-        try {
-            const response = await appContext.axiosInstance.get(`/quiz-metadata/${quizId}/`);
-            const data = response.data as QuizMetadata;
-            setQuizMetadata(data);
-            setAccessLevel(data.visibility);
-        } catch {
-            console.error("Failed to fetch quiz metadata");
-            setQuizMetadata(null);
-            setAccessLevel(AccessLevel.PRIVATE);
-        }
-    };
 
     const fetchAccess = async () => {
         try {
-            const response = await appContext.axiosInstance.get(`/shared-quizzes/?quiz=${quizId}`);
+            const response = await appContext.axiosInstance.get(`/shared-quizzes/?quiz=${quiz.id}`);
             const sharedData = response.data;
             const foundUsers = sharedData.flatMap((sq: SharedQuiz) => sq.user ? [{
                 ...sq.user,
@@ -215,7 +201,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
         // If it's a user
         if ("full_name" in entity) {
             // Prevent duplicates
-            if (!usersWithAccess.find((u) => u.id === entity.id)) {
+            if (!usersWithAccess.find((u) => u.id === entity.id) && entity.id !== quiz.maintainer.id) {
                 setUsersWithAccess((prev) => [...prev, entity]);
             }
         } else {
@@ -237,31 +223,22 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
     };
 
     const handleToggleMaintainerAnonymous = () => {
-        if (!quizMetadata) return;
-        setQuizMetadata((prev) =>
-            prev
-                ? {...prev, is_anonymous: !prev.is_anonymous}
-                : prev
-        );
+        setIsMaintainerAnonymous((prev) => !prev);
     };
 
     const handleToggleAllowAnonymous = (checked: boolean) => {
-        if (!quizMetadata) return;
-        setQuizMetadata((prev) =>
-            prev ? {...prev, allow_anonymous: checked} : prev
-        );
+        setAllowAnonymous(checked);
     };
 
     // -------------- Save Handler -------------- //
     const handleSave = async () => {
-        if (!quizMetadata) return;
 
         try {
             // 1) Update quiz metadata (visibility, allow_anonymous, is_anonymous)
-            await appContext.axiosInstance.patch(`/quizzes/${quizId}/`, {
+            await appContext.axiosInstance.patch(`/quizzes/${quiz.id}/`, {
                 visibility: accessLevel,
-                allow_anonymous: quizMetadata.allow_anonymous && accessLevel >= AccessLevel.UNLISTED,
-                is_anonymous: quizMetadata.is_anonymous,
+                allow_anonymous: allowAnonymous && accessLevel >= AccessLevel.UNLISTED,
+                is_anonymous: isMaintainerAnonymous,
             });
 
             const removedUsers = initialUsersWithAccess.filter(
@@ -293,14 +270,14 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
 
             for (const aUser of addedUsers) {
                 await appContext.axiosInstance.post(`/shared-quizzes/`, {
-                    quiz: quizId,
+                    quiz_id: quiz.id,
                     user_id: aUser.id,
                 });
             }
 
             for (const aGroup of addedGroups) {
                 await appContext.axiosInstance.post(`/shared-quizzes/`, {
-                    quiz: quizId,
+                    quiz_id: quiz.id,
                     study_group_id: aGroup.id,
                 });
             }
@@ -318,7 +295,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
     return (
         <Modal show={show} onHide={onHide} centered>
             <Modal.Header closeButton>
-                <Modal.Title>Udostępnij "{quizTitle}"</Modal.Title>
+                <Modal.Title>Udostępnij "{quiz.title}"</Modal.Title>
             </Modal.Header>
 
             <Modal.Body>
@@ -361,7 +338,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
                     </div>
                 ) : (
                     <AccessList
-                        quizMetadata={quizMetadata}
+                        quizMetadata={quiz}
                         usersWithAccess={usersWithAccess}
                         groupsWithAccess={groupsWithAccess}
                         theme={appContext.theme}
@@ -374,13 +351,13 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
                 <h6 className="mt-3">Poziom dostępu:</h6>
                 <AccessLevelSelector value={accessLevel} onChange={setAccessLevel}/>
 
-                {accessLevel >= AccessLevel.UNLISTED && quizMetadata && (
+                {accessLevel >= AccessLevel.UNLISTED && (
                     <div className="mt-2">
                         <Form.Check
                             type="switch"
                             id="anonymous-switch"
                             label="Pozwól na dostęp dla niezalogowanych"
-                            checked={quizMetadata.allow_anonymous}
+                            checked={allowAnonymous}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                                 handleToggleAllowAnonymous(e.target.checked)
                             }
@@ -413,7 +390,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
                             variant={`outline-${appContext.theme.getOppositeTheme()}`}
                             onClick={() => {
                                 navigator.clipboard.writeText(
-                                    `${window.location.origin}/quiz/${quizId}`
+                                    `${window.location.origin}/quiz/${quiz.id}`
                                 );
                             }}
                             className="d-inline-flex align-items-center"

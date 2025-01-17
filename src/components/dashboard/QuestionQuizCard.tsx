@@ -75,7 +75,7 @@ const QuestionQuizCard: React.FC = () => {
                     <div>
                         <small className="text-muted">Powtórz to jeszcze raz:</small>
                         <h5 className="card-title mb-0">{questionData.question}</h5>
-                        <a href={`/quizzes/${questionData.quiz_id}/`}
+                        <a href={`/quiz/${questionData.quiz_id}`}
                            className="small text-decoration-none text-secondary">
                             {questionData.quiz_title}
                         </a>

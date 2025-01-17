@@ -36,7 +36,7 @@ const LastUsedCard: React.FC = () => {
                             lastUsedQuizzes.map((quiz) => (
                                 <tr key={quiz.id}>
                                     <td>
-                                        <a href={`/quiz/${quiz.id}/`}
+                                        <a href={`/quiz/${quiz.id}`}
                                            className={"text-decoration-none text-" + appContext.theme.getOppositeTheme()}>
                                             {quiz.title}
                                         </a>

@@ -86,8 +86,7 @@ const QuizPreviewModal: React.FC<QuizPreviewModalProps> = ({show, onHide, quiz, 
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <ShareQuizModal show={showShareModal} onHide={() => setShowShareModal(false)} quizId={quiz.id}
-                            quizTitle={quiz.title}/>
+            <ShareQuizModal show={showShareModal} onHide={() => setShowShareModal(false)} quiz={quiz}/>
         </>
     );
 };
