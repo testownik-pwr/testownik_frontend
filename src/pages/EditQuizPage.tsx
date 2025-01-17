@@ -3,13 +3,14 @@ import {Button, Card, Form, Alert, ButtonGroup} from 'react-bootstrap';
 import QuestionForm from '../components/quiz/QuestionForm';
 import {Question, Quiz} from "../components/quiz/types.ts";
 import AppContext from "../AppContext.tsx";
-import {useNavigate, useParams} from "react-router-dom";
+import {useLocation, useNavigate, useParams} from "react-router-dom";
 import PropagateLoader from "react-spinners/PropagateLoader";
 
 const EditQuizPage: React.FC = () => {
     const {quizId} = useParams<{ quizId: string }>();
     const appContext = useContext(AppContext);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -28,6 +29,12 @@ const EditQuizPage: React.FC = () => {
                     setTitle(data.title);
                     setDescription(data.description || '');
                     setQuestions(data.questions || []);
+                    if (location.hash) {
+                        const element = document.getElementById(location.hash.replace('#', ''));
+                        if (element) {
+                            element.scrollIntoView();
+                        }
+                    }
                 } else {
                     setError('Nie udało się załadować bazy.');
                 }

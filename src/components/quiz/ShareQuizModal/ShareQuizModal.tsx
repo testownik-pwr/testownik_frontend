@@ -55,6 +55,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
     const [inputWidth, setInputWidth] = useState(0);
 
     useEffect(() => {
+        setAccessLevel(quiz.visibility);
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

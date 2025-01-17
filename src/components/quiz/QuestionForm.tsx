@@ -34,9 +34,9 @@ const QuestionForm: React.FC<Props> = ({question, onUpdate, onRemove}) => {
     };
 
     return (
-        <div className="border rounded p-3 mb-3">
+        <div className="border rounded p-3 mb-3" id={`question-${question.id}`}>
             <Form.Group className="mb-3">
-                <Form.Label>Pytanie</Form.Label>
+                <Form.Label>Pytanie {question.id}</Form.Label>
                 <Form.Control
                     type="text"
                     placeholder="Podaj treść pytania"

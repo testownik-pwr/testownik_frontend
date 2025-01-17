@@ -4,9 +4,11 @@ import {Navbar as BSNavbar, Nav, Container, Button} from 'react-bootstrap';
 import {Icon} from "@iconify/react";
 import AppContext from "../AppContext.tsx";
 import {SERVER_URL} from "../config.ts";
+import {useNavigate} from "react-router-dom";
 
 const Navbar: React.FC = () => {
     const appContext = useContext(AppContext);
+    const navigate = useNavigate();
 
     const handleLogout = () => {
         localStorage.removeItem("access_token");
@@ -15,6 +17,7 @@ const Navbar: React.FC = () => {
         localStorage.removeItem("is_staff");
         localStorage.removeItem("user_id");
         appContext.setAuthenticated(false);
+        navigate("/");
     }
 
 

@@ -31,8 +31,8 @@ const QuizzesPage: React.FC = () => {
                 }
 
                 if (sharedResponse.status === 200) {
-                    const uniqueSharedQuizzes = sharedResponse.data.filter((quiz: SharedQuiz, index: number, self: SharedQuiz[]) =>
-                        index === self.findIndex((q) => q.quiz.id === quiz.quiz.id)
+                    const uniqueSharedQuizzes = sharedResponse.data.filter((sq: SharedQuiz, index: number, self: SharedQuiz[]) =>
+                        index === self.findIndex((q) => q.quiz.id === sq.quiz.id) && sq.quiz.maintainer.id !== parseInt(localStorage.getItem('user_id') || '0')
                     );
                     setSharedQuizzes(uniqueSharedQuizzes);
                 }
