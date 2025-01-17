@@ -1,4 +1,6 @@
 // types.ts
+import {QuizMetadata} from "../types.ts";
+
 export enum AccessLevel {
     PRIVATE = 0,
     SHARED = 1,
@@ -28,17 +30,6 @@ export interface Group {
     term: Term;
     photo_url: string;
     shared_quiz_id?: string; // Optional, for deleting shared quizzes
-}
-
-export interface QuizMetadata {
-    id: string;
-    title: string;
-    description: string;
-    maintainer: User;
-    visibility: AccessLevel;
-    allow_anonymous: boolean;
-    is_anonymous: boolean;
-    version: number;
 }
 
 export interface SharedQuiz {

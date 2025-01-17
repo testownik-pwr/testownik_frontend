@@ -10,11 +10,12 @@ import {Icon} from "@iconify/react";
 import PropagateLoader from "react-spinners/PropagateLoader";
 
 import AppContext from "../../../AppContext.tsx";
-import {AccessLevel, QuizMetadata, User, Group, SharedQuiz} from "./types";
+import {AccessLevel, User, Group, SharedQuiz} from "./types";
 import AccessLevelSelector from "./AccessLevelSelector.tsx";
 import SearchResultsPopover from "./SearchResultsPopover.tsx";
 import AccessList from "./AccessList.tsx";
 import {distance} from "fastest-levenshtein";
+import {QuizMetadata} from "../types.ts";
 
 interface ShareQuizModalProps {
     show: boolean;

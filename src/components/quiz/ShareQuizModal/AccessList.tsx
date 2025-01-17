@@ -1,8 +1,9 @@
 import React from "react";
 import { Button } from "react-bootstrap";
 import { Icon } from "@iconify/react";
-import { QuizMetadata, User, Group } from "./types";
+import { User, Group } from "./types";
 import {AppTheme} from "../../../Theme.tsx";
+import {QuizMetadata} from "../types.ts";
 
 interface AccessListProps {
     quizMetadata: QuizMetadata | null;

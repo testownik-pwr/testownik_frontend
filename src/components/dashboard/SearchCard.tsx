@@ -1,7 +1,7 @@
 import React, {useContext, useState} from "react";
 import {Card, InputGroup, FormControl, Button, Table} from "react-bootstrap";
 import AppContext from "../../AppContext.tsx";
-import {PropagateLoader} from "react-spinners";
+import PropagateLoader from "react-spinners/PropagateLoader";
 import {Icon} from "@iconify/react";
 
 interface SearchResult {

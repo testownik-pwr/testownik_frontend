@@ -32,6 +32,9 @@ const ProfilePage: React.FC = () => {
     });
 
     useEffect(() => {
+        // Set page title
+        document.title = "Profil - Testownik";
+
         // Fetch user data
         appContext.axiosInstance.get("/user/")
             .then((res) => res.data)
@@ -47,6 +50,7 @@ const ProfilePage: React.FC = () => {
 
     const handleTabSelect = (tabKey: string | null) => {
         if (tabKey) setActiveTab(tabKey);
+        document.title = `${tabKey === "account" ? "Profil" : "Ustawienia"} - Testownik`;
     };
 
     const handleSettingChange = (name: keyof SettingsData, value: boolean | number) => {
@@ -60,7 +64,7 @@ const ProfilePage: React.FC = () => {
     return (
         <Container className="mt-4">
             <Row>
-                <Col md={4}>
+                <Col md={4} className="mb-3">
                     <MenuSidebar activeTab={activeTab} onTabSelect={handleTabSelect}/>
                 </Col>
                 <Col md={8}>

@@ -7,6 +7,8 @@ import {Theme} from "./Theme.tsx";
 import LoginPrompt from "./components/LoginPrompt.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
 import Error404Page from "./pages/errors/Error404Page.tsx";
+import ImportQuizPage from "./pages/ImportQuizPage.tsx";
+import ImportQuizLegacyPage from "./pages/ImportQuizLegacyPage.tsx";
 
 
 const useThemeDetector = () => {
@@ -38,6 +40,8 @@ const App: React.FC = () => {
                     <Routes>
                         <Route path="/" element={<DashboardPage/>}/>
                         <Route path="/profile" element={<ProfilePage/>}/>
+                        <Route path="/import-quiz" element={<ImportQuizPage/>}/>
+                        <Route path="/import-quiz-legacy" element={<ImportQuizLegacyPage/>}/>
                         <Route path="*" element={<Error404Page/>}/>
                     </Routes>
                 ) || (
