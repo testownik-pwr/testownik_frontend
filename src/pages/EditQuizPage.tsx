@@ -3,20 +3,20 @@ import {Button, Card, Form, Alert, ButtonGroup} from 'react-bootstrap';
 import QuestionForm from '../components/quiz/QuestionForm';
 import {Question, Quiz} from "../components/quiz/types.ts";
 import AppContext from "../AppContext.tsx";
-import {useLocation, useNavigate, useParams} from "react-router-dom";
+import {useNavigate, useParams} from "react-router-dom";
 import PropagateLoader from "react-spinners/PropagateLoader";
 
 const EditQuizPage: React.FC = () => {
     const {quizId} = useParams<{ quizId: string }>();
     const appContext = useContext(AppContext);
     const navigate = useNavigate();
-    const location = useLocation();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [questions, setQuestions] = useState<Question[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [advancedMode, setAdvancedMode] = useState(false);
 
     document.title = "Edytuj bazę - Testownik";
 
@@ -25,15 +25,12 @@ const EditQuizPage: React.FC = () => {
             try {
                 const response = await appContext.axiosInstance.get(`/quizzes/${quizId}/`);
                 if (response.status === 200) {
-                    const data: Quiz = await response.data;
+                    const data: Quiz = response.data;
                     setTitle(data.title);
                     setDescription(data.description || '');
                     setQuestions(data.questions || []);
-                    if (location.hash) {
-                        const element = document.getElementById(location.hash.replace('#', ''));
-                        if (element) {
-                            element.scrollIntoView();
-                        }
+                    if (data.questions.some((q) => q.image || q.explanation || q.answers.some((a) => a.image))) {
+                        setAdvancedMode(true);
                     }
                 } else {
                     setError('Nie udało się załadować bazy.');
@@ -55,7 +52,9 @@ const EditQuizPage: React.FC = () => {
                 id: prev.length + 1,
                 question: '',
                 multiple: true,
-                answers: [{answer: '', correct: false}, {answer: '', correct: false}]
+                answers: [{answer: '', correct: false, imageUrl: ''}, {answer: '', correct: false, imageUrl: ''}],
+                imageUrl: '',
+                explanation: ''
             },
         ]);
     };
@@ -102,7 +101,15 @@ const EditQuizPage: React.FC = () => {
             const response = await appContext.axiosInstance.put(`/quizzes/${quizId}/`, {
                 title,
                 description,
-                questions,
+                questions: questions.map((q) => ({
+                    ...q,
+                    image: advancedMode ? q.image : undefined,
+                    explanation: advancedMode ? q.explanation : undefined,
+                    answers: q.answers.map((a) => ({
+                        ...a,
+                        image: advancedMode ? a.image : undefined,
+                    })),
+                })),
             });
 
             if (response.status !== 200) {
@@ -140,7 +147,16 @@ const EditQuizPage: React.FC = () => {
         <>
             <Card className="border-0 shadow mb-5">
                 <Card.Body>
-                    <h1 className="h5">Edytuj bazę</h1>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <h1 className="h5">Edytuj bazę</h1>
+                        <Form.Check
+                            type="switch"
+                            id="advanced-mode-switch"
+                            label="Tryb zaawansowany"
+                            checked={advancedMode}
+                            onChange={(e) => setAdvancedMode(e.target.checked)}
+                        />
+                    </div>
                     {error && <Alert variant="danger">{error}</Alert>}
                     <Form>
                         <Form.Group className="mb-3">
@@ -170,10 +186,14 @@ const EditQuizPage: React.FC = () => {
                                 question={question}
                                 onUpdate={updateQuestion}
                                 onRemove={removeQuestion}
+                                advancedMode={advancedMode}
                             />
                         ))}
-                        <Button variant={`outline-${appContext.theme.getOppositeTheme()}`} onClick={addQuestion}
-                                className="mt-3">
+                        <Button
+                            variant={`outline-${appContext.theme.getOppositeTheme()}`}
+                            onClick={addQuestion}
+                            className="mt-3"
+                        >
                             Dodaj pytanie
                         </Button>
                         <div className="text-center mt-4">

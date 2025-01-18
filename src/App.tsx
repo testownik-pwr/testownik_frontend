@@ -12,6 +12,7 @@ import ImportQuizLegacyPage from "./pages/ImportQuizLegacyPage.tsx";
 import CreateQuizPage from "./pages/CreateQuizPage.tsx";
 import EditQuizPage from "./pages/EditQuizPage.tsx";
 import QuizzesPage from "./pages/QuizzesPage.tsx";
+import SearchInQuizPage from "./pages/SearchInQuizPage.tsx";
 
 
 const useThemeDetector = () => {
@@ -48,6 +49,7 @@ const App: React.FC = () => {
                         <Route path="/import-quiz" element={<ImportQuizPage/>}/>
                         <Route path="/import-quiz-legacy" element={<ImportQuizLegacyPage/>}/>
                         <Route path="/quizzes" element={<QuizzesPage/>}/>
+                        <Route path="/search-in-quiz/:quizId" element={<SearchInQuizPage/>}/>
                         <Route path="*" element={<Error404Page/>}/>
                     </Routes>
                 ) || (

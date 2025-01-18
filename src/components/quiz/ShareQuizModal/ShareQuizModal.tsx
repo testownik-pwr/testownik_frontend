@@ -202,7 +202,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
         // If it's a user
         if ("full_name" in entity) {
             // Prevent duplicates
-            if (!usersWithAccess.find((u) => u.id === entity.id) && entity.id !== quiz.maintainer.id) {
+            if (!usersWithAccess.find((u) => u.id === entity.id) && entity.id !== quiz.maintainer?.id) {
                 setUsersWithAccess((prev) => [...prev, entity]);
             }
         } else {

@@ -7,17 +7,26 @@ type Props = {
     question: Question;
     onUpdate: (updatedQuestion: Question) => void;
     onRemove: (id: number) => void;
+    advancedMode?: boolean;
 };
 
-const QuestionForm: React.FC<Props> = ({question, onUpdate, onRemove}) => {
+const QuestionForm: React.FC<Props> = ({question, onUpdate, onRemove, advancedMode = false}) => {
     const appContext = useContext(AppContext);
 
     const handleTextChange = (text: string) => {
         onUpdate({...question, question: text});
     };
 
+    const handleExplanationChange = (explanation: string) => {
+        onUpdate({...question, explanation});
+    };
+
+    const handleImageUrlChange = (image: string) => {
+        onUpdate({...question, image});
+    };
+
     const addAnswer = () => {
-        const newAnswer = {answer: '', correct: false};
+        const newAnswer = {answer: '', correct: false, image: ''};
         onUpdate({...question, answers: [...question.answers, newAnswer]});
     };
 
@@ -44,6 +53,31 @@ const QuestionForm: React.FC<Props> = ({question, onUpdate, onRemove}) => {
                     onChange={(e) => handleTextChange(e.target.value)}
                 />
             </Form.Group>
+
+            {advancedMode && (
+                <>
+                    <Form.Group className="mb-3">
+                        <Form.Label>URL zdjęcia dla pytania</Form.Label>
+                        <Form.Control
+                            type="text"
+                            placeholder="Podaj URL zdjęcia"
+                            value={question.image || ''}
+                            onChange={(e) => handleImageUrlChange(e.target.value)}
+                        />
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Wyjaśnienie</Form.Label>
+                        <Form.Control
+                            as="textarea"
+                            rows={3}
+                            placeholder="Podaj wyjaśnienie pytania"
+                            value={question.explanation || ''}
+                            onChange={(e) => handleExplanationChange(e.target.value)}
+                        />
+                    </Form.Group>
+                </>
+            )}
+
             <h6>Odpowiedzi</h6>
             {question.answers.map((answer, index) => (
                 <Row key={index} className="align-items-center mb-2">
@@ -60,6 +94,21 @@ const QuestionForm: React.FC<Props> = ({question, onUpdate, onRemove}) => {
                             }
                         />
                     </Col>
+                    {advancedMode && (
+                        <Col>
+                            <Form.Control
+                                type="text"
+                                placeholder="URL zdjęcia dla odpowiedzi"
+                                value={answer.image || ''}
+                                onChange={(e) =>
+                                    updateAnswer(index, {
+                                        ...answer,
+                                        image: e.target.value,
+                                    })
+                                }
+                            />
+                        </Col>
+                    )}
                     <Col xs="auto">
                         <Form.Check
                             type="checkbox"
@@ -84,7 +133,11 @@ const QuestionForm: React.FC<Props> = ({question, onUpdate, onRemove}) => {
                 </Row>
             ))}
             <div className="d-flex gap-2">
-                <Button variant={`outline-${appContext.theme.getOppositeTheme()}`} size="sm" onClick={addAnswer}>
+                <Button
+                    variant={`outline-${appContext.theme.getOppositeTheme()}`}
+                    size="sm"
+                    onClick={addAnswer}
+                >
                     Dodaj odpowiedź
                 </Button>
                 <Button

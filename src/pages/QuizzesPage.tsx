@@ -32,7 +32,7 @@ const QuizzesPage: React.FC = () => {
 
                 if (sharedResponse.status === 200) {
                     const uniqueSharedQuizzes = sharedResponse.data.filter((sq: SharedQuiz, index: number, self: SharedQuiz[]) =>
-                        index === self.findIndex((q) => q.quiz.id === sq.quiz.id) && sq.quiz.maintainer.id !== parseInt(localStorage.getItem('user_id') || '0')
+                        index === self.findIndex((q) => q.quiz.id === sq.quiz.id) && sq.quiz.maintainer?.id !== parseInt(localStorage.getItem('user_id') || '0')
                     );
                     setSharedQuizzes(uniqueSharedQuizzes);
                 }
@@ -62,6 +62,31 @@ const QuizzesPage: React.FC = () => {
                     }
                 );
         }
+    }
+
+    const handleDownloadQuiz = (quiz: Quiz) => {
+        appContext.axiosInstance.get(`/quizzes/${quiz.id}/`)
+            .then((response) => {
+                const quiz = response.data;
+                delete quiz.id;
+                quiz.maintainer = quiz.maintainer?.full_name || null;
+                delete quiz.visibility;
+                delete quiz.allow_anonymous;
+                const url = window.URL.createObjectURL(new Blob([JSON.stringify(quiz, null, 2)], {type: 'application/json'}));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `${quiz.title}.json`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            })
+            .catch(() => {
+                setError('Nie udało się pobrać bazy.');
+            });
+    }
+
+    const handleSearchInQuiz = (quiz: Quiz) => {
+        navigate(`/search-in-quiz/${quiz.id}`);
     }
 
     if (loading) {
@@ -115,6 +140,20 @@ const QuizzesPage: React.FC = () => {
                                             size="sm"
                                         >
                                             <Icon icon={"mdi:ios-share"}/>
+                                        </Button>
+                                        <Button
+                                            variant={`outline-${appContext.theme.getOppositeTheme()}`}
+                                            onClick={() => handleDownloadQuiz(quiz)}
+                                            size="sm"
+                                        >
+                                            <Icon icon={"mdi:download"}/>
+                                        </Button>
+                                        <Button
+                                            variant={`outline-${appContext.theme.getOppositeTheme()}`}
+                                            onClick={() => handleSearchInQuiz(quiz)}
+                                            size="sm"
+                                        >
+                                            <Icon icon={"mdi:magnify"}/>
                                         </Button>
                                         <Button
                                             variant={`outline-${appContext.theme.getOppositeTheme()}`}
