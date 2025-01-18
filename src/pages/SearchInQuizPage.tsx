@@ -74,7 +74,7 @@ const SearchInQuizPage: React.FC = () => {
     return (
         <div className="p-4">
             <h1 className="h4 mb-4">{quiz?.title}</h1>
-            <p>{quiz?.description || "Brak opisu quizu."}</p>
+            {quiz?.description && <p className="mb-4">{quiz.description}</p>}
 
             <Form.Group className="mb-4">
                 <Form.Control
