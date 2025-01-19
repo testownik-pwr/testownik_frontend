@@ -42,6 +42,7 @@ const App: React.FC = () => {
                 {context.isAuthenticated && (
                     <Routes>
                         <Route path="/" element={<DashboardPage/>}/>
+                        <Route path="/quiz/:quizId" element={<QuizPage />} />
                         <Route path="/profile" element={<ProfilePage/>}/>
                         <Route path="/create-quiz" element={<CreateQuizPage/>}/>
                         <Route path="/edit-quiz/:quizId" element={<EditQuizPage/>}/>
@@ -53,7 +54,7 @@ const App: React.FC = () => {
                     </Routes>
                 ) || (
                     <Routes>
-                        <Route path="/quiz/:id" element={<QuizPage />} />
+                        <Route path="/quiz/:quizId" element={<QuizPage />} />
                         <Route path="*" element={<LoginPrompt />} />
                     </Routes>
                 )}
