@@ -3,8 +3,8 @@ import {Card, Table, Form} from "react-bootstrap";
 
 interface SettingsData {
     sync_progress: boolean;
-    initial_repetitions: number;
-    wrong_answer_repetitions: number;
+    initial_reoccurrences: number;
+    wrong_answer_reoccurrences: number;
 }
 
 interface SettingsFormProps {
@@ -40,9 +40,9 @@ const SettingsForm: React.FC<SettingsFormProps> = ({settings, onSettingChange}) 
                             <Form.Control
                                 type="number"
                                 min="1"
-                                value={settings.initial_repetitions}
+                                value={settings.initial_reoccurrences}
                                 onChange={(e) =>
-                                    onSettingChange("initial_repetitions", Number(e.target.value))
+                                    onSettingChange("initial_reoccurrences", Number(e.target.value))
                                 }
                             />
                         </td>
@@ -55,9 +55,9 @@ const SettingsForm: React.FC<SettingsFormProps> = ({settings, onSettingChange}) 
                             <Form.Control
                                 type="number"
                                 min="0"
-                                value={settings.wrong_answer_repetitions}
+                                value={settings.wrong_answer_reoccurrences}
                                 onChange={(e) =>
-                                    onSettingChange("wrong_answer_repetitions", Number(e.target.value))
+                                    onSettingChange("wrong_answer_reoccurrences", Number(e.target.value))
                                 }
                             />
                         </td>

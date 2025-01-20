@@ -9,6 +9,7 @@ interface AccessListProps {
     quizMetadata: QuizMetadata | null;
     usersWithAccess: User[];
     groupsWithAccess: Group[];
+    isMaintainerAnonymous: boolean;
     theme: AppTheme;
     handleRemoveUserAccess: (user: User) => void;
     handleRemoveGroupAccess: (group: Group) => void;
@@ -19,6 +20,7 @@ const AccessList: React.FC<AccessListProps> = ({
                                                    quizMetadata,
                                                    usersWithAccess,
                                                    groupsWithAccess,
+                                                   isMaintainerAnonymous,
                                                    theme,
                                                    handleRemoveUserAccess,
                                                    handleRemoveGroupAccess,
@@ -46,7 +48,7 @@ const AccessList: React.FC<AccessListProps> = ({
                         onClick={handleToggleMaintainerAnonymous}
                         style={{ cursor: "pointer", userSelect: "none" }}
                     >
-                        {quizMetadata.is_anonymous ? (
+                        {isMaintainerAnonymous ? (
                             <Icon
                                 icon="mdi:incognito"
                                 className="text-danger bg-danger bg-opacity-25 rounded-circle p-1"

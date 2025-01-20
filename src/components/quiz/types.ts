@@ -29,3 +29,8 @@ export interface Question {
 export interface Quiz extends QuizMetadata {
     questions: Question[];
 }
+
+export interface Reoccurrence {
+    id: number;
+    reoccurrences: number;
+}
