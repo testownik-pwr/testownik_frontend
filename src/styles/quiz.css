@@ -2,124 +2,23 @@
     touch-action: manipulation;
 }
 
-
-.button-container {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.stats {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.stat-item {
-    display: flex;
-    justify-content: space-between;
-}
-
-.bottom-buttons {
-    margin-top: 20px;
-}
-
-@media (max-width: 768px) {
-    .bottom-buttons {
-        display: flex;
-        justify-content: center;
-    }
-
-    #nextButton {
-        font-size: 1.5em;
-        padding: 6px 16px;
-    }
-}
-
-#explanation {
-    overflow: auto;
-}
-
-.top-button {
-    border-bottom: 0;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    background-color: RGBA(var(--bs-dark-rgb), var(--bs-bg-opacity, 1));
-    border-color: var(--bs-border-color-translucent);
-}
-
-.top-button-group {
-    z-index: 10;
+.player-wrapper {
     position: relative;
+    padding-top: 222.22%; /* Player ratio: 100 / (576 / 1280) */
 }
 
-.qrcode {
-    display: flex;
-    justify-content: center;
-}
-
-.qrcode > img {
-    padding: 10px;
-    background-color: white;
-    border-radius: 10px;
-    max-width: 100%;
-    max-height: 50vh;
-    object-fit: contain;
+.react-player {
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 #continuityButton {
     width: 48px;
-    height: 48px; /* make sure this is equal to the width */
+    height: 48px;
     border-radius: 50%;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.circular-progress {
-    --size: 32px;
-    --half-size: calc(var(--size) / 2);
-    --stroke-width: 4px;
-    --radius: calc((var(--size) - var(--stroke-width)) / 2);
-    --circumference: calc(var(--radius) * pi * 2);
-    --dash: calc((var(--progress) * var(--circumference)) / 100);
-    animation: progress-animation 5s linear 0s 1 forwards;
-}
-
-.circular-progress circle {
-    cx: var(--half-size);
-    cy: var(--half-size);
-    r: var(--radius);
-    stroke-width: var(--stroke-width);
-    fill: none;
-    stroke-linecap: round;
-}
-
-.circular-progress circle.bg {
-    stroke: #ddd;
-}
-
-.circular-progress circle.fg {
-    transform: rotate(-90deg);
-    transform-origin: var(--half-size) var(--half-size);
-    stroke-dasharray: var(--dash) calc(var(--circumference) - var(--dash));
-    transition: stroke-dasharray 0.3s linear 0s;
-    stroke: #5394fd;
-}
-
-@property --progress {
-    syntax: "<number>";
-    inherits: false;
-    initial-value: 0;
-}
-
-@keyframes progress-animation {
-    from {
-        --progress: 0;
-    }
-    to {
-        --progress: 100;
-    }
 }

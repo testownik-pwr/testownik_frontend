@@ -9,15 +9,10 @@ import {useParams} from "react-router-dom";
 import {
     Container,
     Row,
-    Col,
+    Col, Card, Button,
 } from "react-bootstrap";
-// import {Icon} from "@iconify/react";
-// import ReactPlayer from "react-player";
+import ReactPlayer from "react-player";
 import Peer, {DataConnection} from "peerjs";
-import {UAParser} from "ua-parser-js";
-
-import "katex/dist/katex.min.css";
-import "bootstrap/dist/css/bootstrap.min.css";
 
 import AppContext from "../AppContext.tsx";
 import QuestionCard from "../components/quiz/QuestionCard.tsx";
@@ -26,6 +21,9 @@ import {Question, Quiz, Reoccurrence} from "../components/quiz/types.ts";
 import ContinuityModal from "../components/quiz/ContinuityModal.tsx";
 import ToastNotifications from "../components/quiz/ToastNotifications.tsx";
 import {getDeviceFriendlyName, getDeviceType} from "../components/quiz/helpers/deviceUtils.ts";
+import {Icon} from "@iconify/react";
+
+import "../styles/quiz.css";
 
 interface UserSettings {
     sync_progress: boolean;
@@ -45,7 +43,6 @@ interface Progress {
 
 const PING_INTERVAL = 5000; // 5s
 const PING_TIMEOUT = 15000; // 15s
-
 
 
 /**
@@ -101,6 +98,9 @@ const QuizPage: React.FC = () => {
     const [showContinuityDisconnectedToast, setShowContinuityDisconnectedToast] =
         useState(false);
 
+    // Memes
+    const [showBrainrot, setShowBrainrot] = useState(false);
+
 
     // ========== Lifecycle ==========
     useEffect(() => {
@@ -126,10 +126,11 @@ const QuizPage: React.FC = () => {
 
             // Attempt to load progress
             const savedProgress = await loadProgress(settings.sync_progress);
-            if (savedProgress) {
+            if (savedProgress && savedProgress.current_question !== 0) {
                 applyLoadedProgress(quizData, savedProgress);
             } else {
                 // If no progress, create fresh reoccurrences & pick random question
+                console.log(quizData)
                 const newReoccurrences = quizData.questions.map((q) => ({
                     id: q.id,
                     reoccurrences: settings.initial_reoccurrences,
@@ -377,7 +378,6 @@ const QuizPage: React.FC = () => {
 
     // use callback to avoid re-creating the function on every render
     const checkAnswer = (remote = false): void => {
-        console.log("Checking answer...");
         if (questionChecked || !currentQuestionRef.current) return;
 
         // If question has multiple correct answers, user might have multiple selected
@@ -489,73 +489,74 @@ const QuizPage: React.FC = () => {
     };
 
     // ========== Utility Actions (copy, chatgpt, report) ==========
-    // const copyToClipboard = (): void => {
-    //     try {
-    //         if (!currentQuestion) return;
-    //         const {question, answers} = currentQuestion;
-    //         const answersText = answers
-    //             .map(
-    //                 (answer, idx) =>
-    //                     `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${
-    //                         answer.correct ? "Tak" : "Nie"
-    //                     })`
-    //             )
-    //             .join("\n");
-    //         const fullText = `${question}\n\n${answersText}`;
-    //         navigator.clipboard.writeText(fullText).then(() => {
-    //             setShowCopiedToast(true);
-    //         });
-    //     } catch (error) {
-    //         console.error("Błąd podczas kopiowania do schowka:", error);
-    //         setShowErrorToast(true);
-    //     }
-    // };
-    //
-    // const openInChatGPT = () => {
-    //     try {
-    //         if (!currentQuestion) return;
-    //         const {question, answers} = currentQuestion;
-    //         const answersText = answers
-    //             .map(
-    //                 (answer, idx) =>
-    //                     `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${
-    //                         answer.correct ? "Tak" : "Nie"
-    //                     })`
-    //             )
-    //             .join("\n");
-    //         const fullText = `Pytanie: ${question}\n\nOdpowiedzi:\n${answersText}`;
-    //         const chatGPTUrl = `https://chat.openai.com/?q=${encodeURIComponent(
-    //             fullText
-    //         )}`;
-    //         window.open(chatGPTUrl, "_blank");
-    //     } catch (error) {
-    //         console.error("Error opening in ChatGPT:", error);
-    //         setShowErrorToast(true);
-    //     }
-    // };
+    const copyToClipboard = (): void => {
+        try {
+            if (!currentQuestion) return;
+            const {question, answers} = currentQuestion;
+            const answersText = answers
+                .map(
+                    (answer, idx) =>
+                        `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${
+                            answer.correct ? "Tak" : "Nie"
+                        })`
+                )
+                .join("\n");
+            const fullText = `${question}\n\n${answersText}`;
+            navigator.clipboard.writeText(fullText).then(() => {
+                setShowCopiedToast(true);
+            });
+        } catch (error) {
+            console.error("Błąd podczas kopiowania do schowka:", error);
+            setShowErrorToast(true);
+        }
+    };
 
-    // const reportIncorrectQuestion = () => {
-    //     if (!currentQuestion || !quiz) {
-    //         alert("Brak pytania do zgłoszenia!");
-    //         return;
-    //     }
-    //     if (!quiz.report_email) {
-    //         alert("Brak adresu e-mail do zgłaszania błędów.");
-    //         return;
-    //     }
-    //
-    //     const subject = encodeURIComponent(`Testownik - zgłoszenie błędu`);
-    //     const body = encodeURIComponent(
-    //         `Pytanie nr ${currentQuestion.id}:\n${currentQuestion.question}\n\nOdpowiedzi:\n` +
-    //         currentQuestion.answers
-    //             .map(
-    //                 (ans) => `${ans.answer} (Poprawna: ${ans.correct ? "Tak" : "Nie"})`
-    //             )
-    //             .join("\n") +
-    //         `\n\nUwagi:\n`
-    //     );
-    //     window.open(`mailto:${quiz.report_email}?subject=${subject}&body=${body}`);
-    // };
+    const openInChatGPT = () => {
+        try {
+            if (!currentQuestion) return;
+            const {question, answers} = currentQuestion;
+            const answersText = answers
+                .map(
+                    (answer, idx) =>
+                        `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${
+                            answer.correct ? "Tak" : "Nie"
+                        })`
+                )
+                .join("\n");
+            const fullText = `Wyjaśnij to pytanie i jak dojść do odpowiedzi: ${question}\n\nOdpowiedzi:\n${answersText}`;
+            const chatGPTUrl = `https://chat.openai.com/?q=${encodeURIComponent(
+                fullText
+            )}`;
+            window.open(chatGPTUrl, "_blank");
+        } catch (error) {
+            console.error("Error opening in ChatGPT:", error);
+            setShowErrorToast(true);
+        }
+    };
+
+    const reportIncorrectQuestion = () => {
+        alert("Funkcja zgłaszania błędów jest obecnie niedostępna. \nPrzepraszamy za utrudnienia.");
+        if (!currentQuestion || !quiz) {
+            alert("Brak pytania do zgłoszenia!");
+            return;
+        }
+        if (!quiz) {
+            alert("Brak adresu e-mail do zgłaszania błędów.");
+            return;
+        }
+
+        const subject = encodeURIComponent(`Testownik - zgłoszenie błędu`);
+        const body = encodeURIComponent(
+            `Pytanie nr ${currentQuestion.id}:\n${currentQuestion.question}\n\nOdpowiedzi:\n` +
+            currentQuestion.answers
+                .map(
+                    (ans) => `${ans.answer} (Poprawna: ${ans.correct ? "Tak" : "Nie"})`
+                )
+                .join("\n") +
+            `\n\nUwagi:\n`
+        );
+        window.open(`mailto:${quiz}?subject=${subject}&body=${body}`);
+    };
 
 
     interface InitialSyncMessage {
@@ -592,7 +593,6 @@ const QuizPage: React.FC = () => {
         | PongMessage;
 
     const initiateContinuity = () => {
-        console.log("Initiating continuity...");
 
         if (peer) {
             console.warn("Continuity already initialized");
@@ -629,7 +629,7 @@ const QuizPage: React.FC = () => {
 
             hostPeer.on("error", (err) => {
                 if (err.type === "unavailable-id") {
-                    console.warn("Unavailable ID, becoming client and connecting to host...");
+                    console.info("Unavailable ID, becoming client and connecting to host...");
                     setIsContinuityHost(false);
 
                     const clientPeer = new Peer({
@@ -646,12 +646,10 @@ const QuizPage: React.FC = () => {
                         },
                     });
 
-                    clientPeer.on("open", (gid) => {
-                        console.log("Client peer opened with ID:", gid);
+                    clientPeer.on("open", () => {
                         setPeer(clientPeer);
                         connectToPeer(clientPeer, baseId)
                             .then((conn) => {
-                                console.log("Connected to host as client:", conn.peer);
                                 setShowContinuityConnectedToast(true);
                                 handlePeerConnectionAsClient(conn);
                             })
@@ -731,7 +729,6 @@ const QuizPage: React.FC = () => {
     };
 
     const handlePeerDataAsHost = (conn: DataConnection, data: PeerMessage) => {
-        console.log("Received data from client:", data);
 
         switch (data.type) {
             case "question_update":
@@ -752,28 +749,36 @@ const QuizPage: React.FC = () => {
                 // Relay answer checked to other clients
                 sendToAllPeersExcept(conn, {type: "answer_checked"});
                 break;
-            case "pong":
-                console.log("Received pong from client:", conn.peer);
+            case "ping":
+                sendToPeer(conn, {type: "pong"});
                 break;
             default:
                 console.warn("Unknown message type from client:", data.type);
         }
     };
+
     const handlePeerClose = (conn: DataConnection) => {
         console.log("Peer disconnected:", conn.peer);
-        setPeerConnections((prev) => prev.filter((c) => c.open));
+        setPeerConnections((prev) => prev.filter((c) => c.open && c.peer !== conn.peer));
         setShowContinuityDisconnectedToast(true);
 
-        // If we are not the host, try to reconnect or do any fallback
+        // If we are not the host, try to reconnect or if the host is no longer available then we can attempt to become the host
         if (!isContinuityHost && peer && !peer.destroyed) {
-            // We can attempt reconnect logic if you want
-            // ...
+            connectToPeer(peer, conn.peer)
+                .then((newConn) => {
+                    handlePeerConnectionAsClient(newConn);
+                })
+                .catch(() => {
+                    console.warn("Host is no longer available, attempting to become the host...");
+                    initiateContinuity();
+                });
+        } else {
+            console.warn("Host disconnected, attempting to become the host...");
+            initiateContinuity();
         }
     };
 
     const handlePeerConnectionAsClient = (conn: DataConnection) => {
-        console.log("Connected to host:", conn.peer);
-        setPeerConnections((prev) => [...prev, conn]);
 
         conn.on("data", (data) => {
             handlePeerDataAsClient(data as PeerMessage);
@@ -787,11 +792,8 @@ const QuizPage: React.FC = () => {
     };
 
     const handlePeerDataAsClient = (data: PeerMessage) => {
-        console.log("Received data from host:", data);
-
         switch (data.type) {
             case "initial_sync":
-                // Synchronize the client state with the host
                 startTimeRef.current = data.startTime;
                 setCorrectAnswersCount(data.correctAnswersCount);
                 setWrongAnswersCount(data.wrongAnswersCount);
@@ -799,8 +801,6 @@ const QuizPage: React.FC = () => {
                 break;
 
             case "question_update":
-                // Apply changes broadcasted by the host
-                console.log("Applying question update from host:", data.question);
                 setCurrentQuestion(data.question);
                 setQuestionChecked(false);
                 setSelectedAnswers(data.selectedAnswers);
@@ -823,14 +823,12 @@ const QuizPage: React.FC = () => {
         peerConnections.forEach((conn) => {
             if (conn.open) {
                 sendToPeer(conn, {type: "ping"});
-                // optional: track timeouts
                 const timeout = setTimeout(() => {
                     console.warn("Ping timeout, closing connection:", conn.peer);
                     conn.close();
                 }, PING_TIMEOUT);
-                // If the remote responds with "pong", we can clear t
                 conn.on("data", (data) => {
-                    const message = data as PeerMessage; // Type assertion
+                    const message = data as PeerMessage;
                     if (message.type === "pong") {
                         clearTimeout(timeout);
                     }
@@ -854,7 +852,6 @@ const QuizPage: React.FC = () => {
 
     const sendToAllPeers = (data: PeerMessage) => {
         peerConnections.forEach((conn) => {
-            console.log("Sending to peer:", conn.peer, data);
             sendToPeer(conn, data);
         });
     };
@@ -917,7 +914,7 @@ const QuizPage: React.FC = () => {
     return (
         <Container style={{marginTop: 20}}>
             <Row>
-                <Col md={8}>
+                <Col md={8} className="mb-3">
                     <QuestionCard
                         question={currentQuestion}
                         selectedAnswers={selectedAnswers}
@@ -951,11 +948,6 @@ const QuizPage: React.FC = () => {
                         questionChecked={questionChecked}
                         nextAction={nextAction}
                         isQuizFinished={isQuizFinished}
-                        // Explanation if user wants to see it in the UI
-                        // You can pass a "reportQuestion" callback or "copyToClipboard" callback, etc. if your UI has buttons:
-                        // copyToClipboard={copyToClipboard}
-                        // openInChatGPT={openInChatGPT}
-                        // reportIncorrectQuestion={reportIncorrectQuestion}
                     />
                 </Col>
                 <Col md={4}>
@@ -967,16 +959,42 @@ const QuizPage: React.FC = () => {
                         studyTime={studyTime}
                         resetProgress={resetProgress}
                     />
-                    {/* Example embedded player if needed
-          <ReactPlayer
-            url="https://www.youtube.com/watch?v=zZ7AimPACzc"
-            playing
-            muted
-            loop
-            width="100%"
-            height="40rem"
-          />
-          */}
+                    <Card className="border-0 shadow mt-3">
+                        <Card.Body>
+                            <div className="d-flex justify-content-around">
+                                <Button variant={appContext.theme.getTheme()} onClick={copyToClipboard}>
+                                    <Icon icon="solar:clipboard-bold"/>
+                                </Button>
+                                <Button variant={appContext.theme.getTheme()} onClick={openInChatGPT}>
+                                    <Icon icon="simple-icons:openai"/>
+                                </Button>
+                                <Button variant={appContext.theme.getTheme()} onClick={reportIncorrectQuestion}>
+                                    <Icon icon="tabler:message-report-filled"/>
+                                </Button>
+                                <Button variant={appContext.theme.getTheme()}
+                                        onClick={() => setShowBrainrot(!showBrainrot)}>
+                                    <Icon icon="healthicons:skull-24px"/>
+                                </Button>
+                            </div>
+                        </Card.Body>
+                    </Card>
+                    {showBrainrot && (
+                        <Card className="border-0 shadow mt-3">
+                            <Card.Body>
+                                <div className='player-wrapper'>
+                                    <ReactPlayer
+                                        className='react-player'
+                                        url="https://www.youtube.com/watch?v=zZ7AimPACzc"
+                                        playing
+                                        // muted
+                                        loop
+                                        width='100%'
+                                        height='100%'
+                                    />
+                                </div>
+                            </Card.Body>
+                        </Card>
+                    )}
                 </Col>
             </Row>
 
