@@ -22,3 +22,11 @@
     align-items: center;
     justify-content: center;
 }
+
+.answer.btn-dark:hover {
+    background-color: #212529;
+}
+
+.answer.btn-light:hover {
+    background-color: #f8f9fa;
+}

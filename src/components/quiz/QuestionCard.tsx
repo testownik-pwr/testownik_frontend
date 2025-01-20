@@ -71,6 +71,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             if (answer.correct && !selectedAnswers.includes(answerId)) {
                 return 'opacity-50';
             }
+            return '';
         }
     };
 
@@ -120,7 +121,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                             id={`answer-${idx}`}
                             variant={getAnswerVariant(answer, idx)}
                             onClick={() => handleAnswerClick(idx)}
-                            className={`${selectedAnswers.includes(idx) ? 'active' : ''} ${getAnswerAdditionalClasses(answer, idx)}`}
+                            className={`answer ${selectedAnswers.includes(idx) ? 'active' : ''} ${getAnswerAdditionalClasses(answer, idx)}`}
                             disabled={questionChecked}
                         >
                             {answer.answer}
