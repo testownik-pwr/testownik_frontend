@@ -75,7 +75,7 @@ const QuizPage: React.FC = () => {
     const [studyTime, setStudyTime] = useState(0);
 
     // Timers
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<number | null>(null);
     const startTimeRef = useRef<number>(Date.now());
 
     // Continuity
@@ -140,7 +140,6 @@ const QuizPage: React.FC = () => {
             }
 
             setLoading(false);
-            startTimeRef.current = Date.now() - studyTime * 1000;
         })();
 
 
@@ -156,7 +155,7 @@ const QuizPage: React.FC = () => {
         }, PING_INTERVAL);
 
         // Start timer for studyTime
-        timerRef.current = setInterval(() => {
+        timerRef.current = window.setInterval(() => {
             updateStudyTime();
         }, 1000);
 
@@ -230,6 +229,7 @@ const QuizPage: React.FC = () => {
                     `/quiz-progress/${quizId}/`
                 );
                 if (response.status === 200) {
+                    startTimeRef.current = Date.now() - response.data.study_time * 1000;
                     return response.data;
                 }
             } catch (e) {
@@ -238,7 +238,11 @@ const QuizPage: React.FC = () => {
         }
         // Fallback to local storage
         const stored = localStorage.getItem(`${quizId}_progress`);
-        return stored ? JSON.parse(stored) : null;
+        const parsed = stored ? JSON.parse(stored) : null;
+        if (parsed) {
+            startTimeRef.current = Date.now() - parsed.study_time * 1000;
+        }
+        return parsed;
     };
 
     const saveProgress = useCallback(async () => {
