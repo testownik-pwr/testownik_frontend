@@ -17,8 +17,8 @@ interface UserData {
 
 interface SettingsData {
     sync_progress: boolean;
-    initial_repetitions: number;
-    wrong_answer_repetitions: number;
+    initial_reoccurrences: number;
+    wrong_answer_reoccurrences: number;
 }
 
 const ProfilePage: React.FC = () => {
@@ -27,8 +27,8 @@ const ProfilePage: React.FC = () => {
     const [userData, setUserData] = useState<UserData | null>(null);
     const [settings, setSettings] = useState<SettingsData>({
         sync_progress: false,
-        initial_repetitions: 1,
-        wrong_answer_repetitions: 1,
+        initial_reoccurrences: 1,
+        wrong_answer_reoccurrences: 1,
     });
 
     useEffect(() => {

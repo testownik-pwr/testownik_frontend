@@ -1,653 +1,1001 @@
-import React, {useState, useEffect, useCallback} from 'react';
-import {Modal, Button, Toast, ToastContainer, Badge, Container, Card, Row, Col} from 'react-bootstrap';
-import 'katex/dist/katex.min.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import React, {
+    useState,
+    useEffect,
+    useCallback,
+    useRef,
+    useContext,
+} from "react";
 import {useParams} from "react-router-dom";
+import {
+    Container,
+    Row,
+    Col,
+} from "react-bootstrap";
+// import {Icon} from "@iconify/react";
+// import ReactPlayer from "react-player";
+import Peer, {DataConnection} from "peerjs";
+import {UAParser} from "ua-parser-js";
+
+import "katex/dist/katex.min.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+
 import AppContext from "../AppContext.tsx";
-import {Icon} from "@iconify/react";
-import ReactPlayer from "react-player";
-import {Question, Quiz} from "../components/quiz/types.ts";
 import QuestionCard from "../components/quiz/QuestionCard.tsx";
+import QuizInfoCard from "../components/quiz/QuizInfoCard.tsx";
+import {Question, Quiz, Reoccurrence} from "../components/quiz/types.ts";
+import ContinuityModal from "../components/quiz/ContinuityModal.tsx";
+import ToastNotifications from "../components/quiz/ToastNotifications.tsx";
+import {getDeviceFriendlyName, getDeviceType} from "../components/quiz/helpers/deviceUtils.ts";
+
+interface UserSettings {
+    sync_progress: boolean;
+    initial_reoccurrences: number;
+    wrong_answer_reoccurrences: number;
+}
+
+interface Progress {
+    current_question: number;
+    correct_answers_count: number;
+    wrong_answers_count: number;
+    study_time: number;
+    last_activity?: string;
+    reoccurrences: Reoccurrence[];
+}
 
 
-const TopButtonGroup: React.FC = () => (
-    <div className="d-flex justify-content-end mt-2">
-        <div className="btn-group btn-group-sm top-button-group" role="group">
-            <Button variant="outline-light" className="top-button" id="chatGPTButton">
-                <Icon icon="simple-icons:openai"/>
-            </Button>
-            <Button variant="outline-light" className="top-button" id="clipboardButton">
-                <Icon icon="solar:clipboard-bold"/>
-            </Button>
-        </div>
-    </div>
-);
-
-const QuizCard: React.FC = () => (
-    <Card className="border-0 shadow">
-        <Card.Body>
-            <Stats/>
-            <div className="text-end mt-3">
-                <Button variant="danger" size="sm" id="reportButton" style={{display: 'none'}}>
-                    <Icon icon="bi:exclamation-triangle-fill"/>
-                </Button>
-                <Button variant="secondary" size="sm" id="resetButton">
-                    Reset
-                </Button>
-            </div>
-        </Card.Body>
-    </Card>
-);
-
-const Stats: React.FC = () => (
-    <div className="stats">
-        <div className="stat-item">
-            <span>Udzielone odpowiedzi</span>
-            <span className="text-success" id="providedAnswers">0</span>
-        </div>
-        <div className="stat-item">
-            <span>Opanowane pytania</span>
-            <span className="text-secondary" id="masteredQuestions">0</span>
-        </div>
-        <div className="stat-item">
-            <span>Liczba pytań</span>
-            <span className="text-success" id="totalQuestions">0</span>
-        </div>
-        <div className="stat-item">
-            <span>Czas nauki</span>
-            <span className="text-success" id="studyTime">00:00:00</span>
-        </div>
-    </div>
-);
-
-const ContinuityModal: React.FC = () => (
-    <Modal id="continuityModal" aria-labelledby="continuityModalLabel">
-        <Modal.Header closeButton>
-            <Modal.Title id="continuityModalLabel">Continuity</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-            <div id="continuityNotConnectedDiv">
-                <p>Aby połączyć się z innym urządzeniem, zaloguj się na obu urządzeniach i otwórz ten quiz</p>
-            </div>
-            <div id="continuityConnectedDiv" className="d-none">
-                <p>Połączono z <span id="continuityConnectedName"></span></p>
-                <div className="d-flex justify-content-center">
-                    {/*<dotlottie-player*/}
-                    {/*    src="https://lottie.host/25909953-1714-4638-921c-a7b94593bae2/k3okRjUxg9.json"*/}
-                    {/*    background="transparent"*/}
-                    {/*    speed="1"*/}
-                    {/*    style={{ width: 300, height: 300 }}*/}
-                    {/*    loop*/}
-                    {/*    autoplay*/}
-                    {/*/>*/}
-                </div>
-                <div className="text-center mt-3">
-                    Te urządzenia są połączone i synchronizują swój postęp na żywo. Możesz połączyć się z więcej niż
-                    jednym urządzeniem.
-                </div>
-            </div>
-        </Modal.Body>
-        <Modal.Footer>
-            <svg width="32" height="32" viewBox="0 0 32 32" className="circular-progress d-none"
-                 id="continuityModalProgress">
-                <circle className="bg"></circle>
-                <circle className="fg"></circle>
-            </svg>
-            <Button variant="secondary" data-bs-dismiss="modal">Zamknij</Button>
-        </Modal.Footer>
-    </Modal>
-);
-
-const ToastNotifications: React.FC = () => (
-    <ToastContainer className="position-fixed bottom-0 end-0 p-3">
-        <Toast id="copiedToast" data-bs-delay="4000">
-            <Toast.Header>
-                <Icon icon="solar:clipboard-bold" className="me-2"/>
-                <strong className="me-auto">Skopiowano</strong>
-                <small>Teraz</small>
-            </Toast.Header>
-            <Toast.Body>Skopiowano pytanie do schowka</Toast.Body>
-        </Toast>
-        {/* Add other Toast notifications here */}
-    </ToastContainer>
-);
+const PING_INTERVAL = 5000; // 5s
+const PING_TIMEOUT = 15000; // 15s
 
 
+
+/**
+ * Main QuizPage component
+ */
 const QuizPage: React.FC = () => {
     const {quizId} = useParams<{ quizId: string }>();
-    const appContext = React.useContext(AppContext);
+    const appContext = useContext(AppContext);
 
-    const [reoccurrences, setReoccurrences] = useState<{ id: number, reoccurrences: number }[]>([]);
-    const [currentQuestionData, setCurrentQuestionData] = useState<Question | null>(null);
+    // ========== States ==========
+    // Basic
     const [loading, setLoading] = useState(true);
-
     const [quiz, setQuiz] = useState<Quiz | null>(null);
+    const [userSettings, setUserSettings] = useState<UserSettings>({
+        sync_progress: false,
+        initial_reoccurrences: 1,
+        wrong_answer_reoccurrences: 1,
+    });
+
+    // Question management
+    const [reoccurrences, setReoccurrences] = useState<Reoccurrence[]>([]);
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
     const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
     const [questionChecked, setQuestionChecked] = useState(false);
+
+    // Stats
     const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
     const [wrongAnswersCount, setWrongAnswersCount] = useState(0);
     const [isQuizFinished, setIsQuizFinished] = useState(false);
-    const [startTime, setStartTime] = useState(new Date());
     const [studyTime, setStudyTime] = useState(0);
-    const [showModal, setShowModal] = useState(false);
-    const [showToast, setShowToast] = useState({
-        copied: false,
-        error: false,
-        continuityDisconnected: false,
-        continuityConnected: false
-    });
-    const [peer, setPeer] = useState(null);
-    const [peerConnections, setPeerConnections] = useState([]);
-    const [isContinuityHost, setIsContinuityHost] = useState(false);
 
+    // Timers
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const startTimeRef = useRef<number>(Date.now());
+
+    // Continuity
+    const [peer, setPeer] = useState<Peer | null>(null);
+    const [peerConnections, setPeerConnections] = useState<DataConnection[]>([]);
+    const [isContinuityHost, setIsContinuityHost] = useState(false);
+    const hasInitializedContinuity = useRef(false);
+
+    // Refs for use in Continuity callbacks
+    const currentQuestionRef = useRef<Question | null>(null);
+    const reoccurrencesRef = useRef<Reoccurrence[]>([]);
+    const wrongAnswersCountRef = useRef<number>(0);
+    const correctAnswersCountRef = useRef<number>(0);
+
+    // Toast states
+    const [showCopiedToast, setShowCopiedToast] = useState(false);
+    const [showErrorToast, setShowErrorToast] = useState(false);
+    const [showContinuityConnectedToast, setShowContinuityConnectedToast] =
+        useState(false);
+    const [showContinuityDisconnectedToast, setShowContinuityDisconnectedToast] =
+        useState(false);
+
+
+    // ========== Lifecycle ==========
     useEffect(() => {
-        // Load progress and fetch questions
-        fetchQuiz()
-        loadProgress();
-        // Set up event listeners
-        document.addEventListener('keydown', handleKeyPress);
-        return () => {
-            document.removeEventListener('keydown', handleKeyPress);
+        (async () => {
+            const quizData = await fetchQuiz();
+            if (!quizData) {
+                console.error("Nie udało się załadować quizu.");
+                setLoading(false);
+                return;
+            }
+            setQuiz(quizData);
+
+            // Handle version update logic
+            handleVersionUpdate(quizData.version);
+
+            const settings = await fetchUserSettings();
+            if (settings.sync_progress && !hasInitializedContinuity.current) {
+                // Initialize the continuity (PeerJS)
+                initiateContinuity();
+                hasInitializedContinuity.current = true;
+            }
+            setUserSettings(settings);
+
+            // Attempt to load progress
+            const savedProgress = await loadProgress(settings.sync_progress);
+            if (savedProgress) {
+                applyLoadedProgress(quizData, savedProgress);
+            } else {
+                // If no progress, create fresh reoccurrences & pick random question
+                const newReoccurrences = quizData.questions.map((q) => ({
+                    id: q.id,
+                    reoccurrences: settings.initial_reoccurrences,
+                }));
+                setReoccurrences(newReoccurrences);
+                pickRandomQuestion(quizData, newReoccurrences);
+            }
+
+            setLoading(false);
+            startTimeRef.current = Date.now() - studyTime * 1000;
+        })();
+
+
+        // Key press handler
+        const keyDownHandler = (event: globalThis.KeyboardEvent) => {
+            handleKeyPress(event);
         };
+        window.addEventListener("keydown", keyDownHandler);
+
+        // Ping interval
+        const pingIntervalId = setInterval(() => {
+            pingPeers();
+        }, PING_INTERVAL);
+
+        // Start timer for studyTime
+        timerRef.current = setInterval(() => {
+            updateStudyTime();
+        }, 1000);
+
+        // Cleanup
+        return () => {
+            clearInterval(pingIntervalId);
+            if (timerRef.current) clearInterval(timerRef.current);
+            window.removeEventListener("keydown", keyDownHandler);
+            gracefullyClosePeerConnection();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Whenever currentQuestion changes, we attempt to save progress
     useEffect(() => {
-        if (quiz !== null) {
-            loadQuestion(1);
+        if (currentQuestion) {
+            saveProgress();
         }
-    }, [quiz]);
+        currentQuestionRef.current = currentQuestion;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentQuestion]);
 
 
-
-    const fetchQuiz = async () => {
-        const response = await appContext.axiosInstance.get(`/quizzes/${quizId}/`);
-        if (response.status === 200) {
-            const data: Quiz = response.data;
-            setQuiz(data)
-            setLoading(false);
-        } else {
-            console.error("Nie udało się załadować quizu.");
-        }
-    };
-
-    // Load a specific question
-    const loadQuestion = useCallback(
-        (id: number) => {
-            if (quiz === null){
-                console.error("Quiz not loaded.");
-                return;
-            }
-            const question = quiz.questions.find((q) => q.id === id);
-            if (!question) {
-                alert('Nie znaleziono pytania o podanym identyfikatorze.');
-                return;
-            }
-            setCurrentQuestion(question);
-        },
-        [quiz]
-    );
-
-    // Get a random question ID
-    const getRandomQuestionId = useCallback(() => {
-        const availableQuestions = reoccurrences.filter((r) => r.reoccurrences > 0);
-        if (availableQuestions.length === 0) {
-            setIsQuizFinished(true);
-            return null;
-        }
-        const randomIndex = Math.floor(Math.random() * availableQuestions.length);
-        return availableQuestions[randomIndex].id;
+    useEffect(() => {
+        reoccurrencesRef.current = reoccurrences;
     }, [reoccurrences]);
 
+    useEffect(() => {
+        wrongAnswersCountRef.current = wrongAnswersCount;
+    }, [wrongAnswersCount]);
 
-    const loadProgress = async () => {
-        // Load progress logic
-    };
+    useEffect(() => {
+        correctAnswersCountRef.current = correctAnswersCount;
+    }, [correctAnswersCount]);
 
-    const handleKeyPress = (event: KeyboardEvent): void => {
-        // Get the currently active element
-        const activeElement = document.activeElement as HTMLElement;
 
-        // If the event target is an input element (excluding checkboxes), return early
-        if (event.target instanceof HTMLInputElement && event.target.type !== 'checkbox') return;
-
-        // Get the pressed key in lowercase
-        const key = event.key.toLowerCase();
-
-        // Handle different key presses
-        if (key === 's') {
-            // If 's' is pressed, load the next question
-            nextQuestion();
-        } else if (key === 'enter') {
-            // If 'enter' is pressed and the active element is not a button, handle the next button click
-            if (activeElement.tagName.toLowerCase() === 'button') {
-                return;
+    // ========== API & Local Storage Helpers ==========
+    const fetchQuiz = async (): Promise<Quiz | null> => {
+        try {
+            const response = await appContext.axiosInstance.get(`/quizzes/${quizId}/`);
+            if (response.status === 200) {
+                return response.data;
             }
-            handleNextButtonClick();
-        } else if (key >= '1' && key <= '9') {
-            // If a number key (1-9) is pressed, click the corresponding checkbox
-            const index = parseInt(key, 10) - 1;
-            const checkboxes = document.querySelectorAll<HTMLInputElement>('input[name="answer"]');
-            if (checkboxes[index]) {
-                checkboxes[index].click();
-            }
-        } else if (key === 'c' && !event.ctrlKey) {
-            // If 'c' is pressed without the control key, show the continuity button
-            const continuityButton = document.getElementById('continuityButton');
-            if (continuityButton) {
-                continuityButton.classList.remove('d-none');
-            }
+        } catch (e) {
+            console.error("Error fetching quiz:", e);
         }
+        return null;
     };
 
-    const resetProgress = async (): Promise<void> => {
-        // Stop progress saving
-        stopProgressSaving = true;
+    const fetchUserSettings = async (): Promise<UserSettings> => {
+        try {
+            const response = await appContext.axiosInstance.get("/settings/");
+            if (response.status === 200) {
+                return response.data;
+            }
+        } catch (e) {
+            console.error("Error fetching user settings:", e);
+        }
+        return {
+            sync_progress: false,
+            initial_reoccurrences: 1,
+            wrong_answer_reoccurrences: 1,
+        };
+    };
 
-        // Remove progress and version from localStorage
-        localStorage.removeItem(`${source}_progress`);
-        localStorage.removeItem(`${source}_version`);
-
-        // If user settings allow and user is authenticated, delete progress from the server
-        if (userSettings.syncProgress && userAuthenticated) {
-            await fetch(`${source}progress/`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': csrfToken
+    const loadProgress = async (sync: boolean): Promise<Progress | null> => {
+        // Try server if sync is enabled
+        if (sync) {
+            try {
+                const response = await appContext.axiosInstance.get(
+                    `/quiz-progress/${quizId}/`
+                );
+                if (response.status === 200) {
+                    return response.data;
                 }
-            });
+            } catch (e) {
+                console.log("No server progress found or error retrieving. Falling back. Error:", e);
+            }
+        }
+        // Fallback to local storage
+        const stored = localStorage.getItem(`${quizId}_progress`);
+        return stored ? JSON.parse(stored) : null;
+    };
+
+    const saveProgress = useCallback(async () => {
+        if (!currentQuestion || isQuizFinished) return;
+
+        const progress: Progress = {
+            current_question: currentQuestion.id,
+            correct_answers_count: correctAnswersCount,
+            wrong_answers_count: wrongAnswersCount,
+            study_time: studyTime,
+            reoccurrences: reoccurrences,
+        };
+
+        // localStorage
+        localStorage.setItem(`${quizId}_progress`, JSON.stringify(progress));
+
+        // if sync and either we are host or not connected at all
+        if (
+            userSettings.sync_progress &&
+            (isContinuityHost || peerConnections.length === 0)
+        ) {
+            try {
+                await appContext.axiosInstance.post(`/quiz-progress/${quizId}/`, progress);
+            } catch (e) {
+                console.error("Error saving progress to server:", e);
+            }
+        }
+    }, [
+        currentQuestion,
+        correctAnswersCount,
+        wrongAnswersCount,
+        studyTime,
+        reoccurrences,
+        isQuizFinished,
+        isContinuityHost,
+        peerConnections,
+        quizId,
+        userSettings.sync_progress,
+        appContext.axiosInstance,
+    ]);
+
+    const resetProgress = async () => {
+        localStorage.removeItem(`${quizId}_progress`);
+        if (userSettings.sync_progress) {
+            try {
+                await appContext.axiosInstance.delete(`/quiz-progress/${quizId}/`);
+            } catch (e) {
+                console.error("Error resetting progress on server:", e);
+            }
+        }
+        // Now re-initialize states
+        if (quiz) {
+            const newReoccurrences = quiz.questions.map((q) => ({
+                id: q.id,
+                reoccurrences: userSettings.initial_reoccurrences,
+            }));
+            setReoccurrences(newReoccurrences);
+            setCorrectAnswersCount(0);
+            setWrongAnswersCount(0);
+            setIsQuizFinished(false);
+            setStudyTime(0);
+            pickRandomQuestion(quiz, newReoccurrences);
         }
     };
 
-    const handleNextButtonClick = (): void => {
-        // Get the next button element
-        const nextButton = document.getElementById('nextButton') as HTMLButtonElement;
+    // ========== Version Checking ==========
+    const handleVersionUpdate = (fetchedVersion: number) => {
+        const localVersionKey = `${quizId}_version`;
+        const storedVersionString = localStorage.getItem(localVersionKey);
+        const storedVersion = storedVersionString ? parseInt(storedVersionString) : 0;
 
-        // Check the text content of the next button
-        if (nextButton.textContent === 'Sprawdź') {
-            // If the button text is 'Sprawdź', check the answer
-            checkAnswer();
+        if (!storedVersionString) {
+            // No local version set yet
+            localStorage.setItem(localVersionKey, fetchedVersion.toString());
+        } else if (fetchedVersion !== storedVersion) {
+            // Show a quick alert or set a special toast that DB updated
+            console.log("Baza pytań została zaktualizowana!");
+            localStorage.setItem(localVersionKey, fetchedVersion.toString());
+        }
+    };
+
+    // ========== Question Handling ==========
+    const applyLoadedProgress = (
+        quizData: Quiz,
+        savedProgress: Progress
+    ): void => {
+        // Reconstruct
+        setCorrectAnswersCount(savedProgress.correct_answers_count);
+        setWrongAnswersCount(savedProgress.wrong_answers_count);
+        setReoccurrences(savedProgress.reoccurrences);
+        setStudyTime(savedProgress.study_time);
+
+        // If everything is mastered, or no question set, pick random
+        const questionFromProgress = quizData.questions.find(
+            (q) => q.id === savedProgress.current_question
+        );
+        if (!questionFromProgress) {
+            pickRandomQuestion(quizData, savedProgress.reoccurrences);
         } else {
-            // Otherwise, load the next question
-            nextQuestion();
+            const sortedAnswers = [...questionFromProgress.answers].sort(
+                () => Math.random() - 0.5
+            );
+            setCurrentQuestion({...questionFromProgress, answers: sortedAnswers});
+            // Check if everything is done
+            const anyWithReoccurrences = savedProgress.reoccurrences.some(
+                (r) => r.reoccurrences > 0
+            );
+            if (!anyWithReoccurrences) {
+                setIsQuizFinished(true);
+            }
         }
     };
 
-    const handleCheckboxClick = (clickedCheckbox: HTMLInputElement, isMultiple: boolean, remote: boolean = false): void => {
-        // If multiple selection is not allowed, uncheck all other checkboxes
-        if (!isMultiple) {
-            document.querySelectorAll<HTMLInputElement>('input[name="answer"]').forEach(checkbox => {
-                if (checkbox !== clickedCheckbox) {
-                    checkbox.checked = false;
-                }
-            });
+    const pickRandomQuestion = (
+        quizData: Quiz,
+        recurrencesData: Reoccurrence[]
+    ) => {
+        const available = recurrencesData.filter((r) => r.reoccurrences > 0);
+        if (available.length === 0) {
+            setIsQuizFinished(true);
+            setCurrentQuestion(null);
+            return;
+        }
+        const randId = available[Math.floor(Math.random() * available.length)].id;
+        const questionObj = quizData.questions.find((q) => q.id === randId);
+        if (!questionObj) {
+            setCurrentQuestion(null);
+            return;
+        }
+        const sortedAnswers = [...questionObj.answers].sort(
+            () => Math.random() - 0.5
+        );
+        setCurrentQuestion({...questionObj, answers: sortedAnswers});
+        setIsQuizFinished(false);
+        return {...questionObj, answers: sortedAnswers};
+    };
+
+    // use callback to avoid re-creating the function on every render
+    const checkAnswer = (remote = false): void => {
+        console.log("Checking answer...");
+        if (questionChecked || !currentQuestionRef.current) return;
+
+        // If question has multiple correct answers, user might have multiple selected
+        // We'll interpret correctness similarly to old code:
+        // i.e. the question is correct if every correct answer is checked
+        // and no incorrect answers are checked.
+        const correctIndices = currentQuestionRef.current.answers
+            .map((ans, idx) => (ans.correct ? idx : -1))
+            .filter((idx) => idx !== -1);
+
+        const isCorrect =
+            correctIndices.length === selectedAnswers.length &&
+            correctIndices.every((ci) => selectedAnswers.includes(ci));
+
+        if (isCorrect) {
+            setCorrectAnswersCount((count) => count + 1);
+            // Decrement reoccurrences for this question
+            setReoccurrences((prev) =>
+                prev.map((r) =>
+                    r.id === currentQuestionRef.current?.id
+                        ? {...r, reoccurrences: Math.max(r.reoccurrences - 1, 0)}
+                        : r
+                )
+            );
+        } else {
+            setWrongAnswersCount((count) => count + 1);
+            // Increase reoccurrences if wrong
+            setReoccurrences((prev) =>
+                prev.map((r) =>
+                    r.id === currentQuestionRef.current?.id
+                        ? {
+                            ...r,
+                            reoccurrences:
+                                r.reoccurrences + userSettings.wrong_answer_reoccurrences,
+                        }
+                        : r
+                )
+            );
         }
 
-        // If the click is not remote, send the selected answer to all peers
+        setQuestionChecked(true);
+
         if (!remote) {
-            sendToAllPeers({
-                type: 'answer_selected',
-                answer: clickedCheckbox.dataset.key
-            });
-        } else {
-            // If the click is remote, toggle the checkbox state
-            clickedCheckbox.checked = !clickedCheckbox.checked;
-        }
-
-        // Update the label color based on the checkbox state
-        if (clickedCheckbox.labels && clickedCheckbox.labels[0]) {
-            clickedCheckbox.labels[0].style.color = clickedCheckbox.checked ? 'var(--bs-light)' : 'var(--bs-body-color)';
-        }
-    };
-
-    const checkAnswer = (remote: boolean = false): void => {
-        // Get all selected checkboxes
-        const selectedCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="answer"]:checked');
-        // Get feedback, explanation, next button, and button container elements
-        const feedback = document.getElementById('feedback') as HTMLElement;
-        const explanation = document.getElementById('explanation') as HTMLElement;
-        const nextButton = document.getElementById('nextButton') as HTMLButtonElement;
-        const buttonContainer = document.getElementById('buttonContainer') as HTMLElement;
-
-        let allCorrect = true;
-        let hasSelectedCorrect = false;
-        // Get correct answers from current question data
-        const correctAnswers = currentQuestionData?.answers.filter(answer => answer.correct) || [];
-        // Get selected answers' keys
-        const selectedAnswers = Array.from(selectedCheckboxes).map(checkbox => checkbox.dataset.key);
-
-        // Check if all correct answers are selected
-        correctAnswers.forEach(answer => {
-            if (!selectedAnswers.includes(answer.answer + (answer.image || ''))) {
-                allCorrect = false;
-            }
-        });
-
-        // Check each selected checkbox if it is correct or not
-        selectedCheckboxes.forEach(selectedCheckbox => {
-            const isCorrect = selectedCheckbox.value === 'true';
-            if (isCorrect) {
-                hasSelectedCorrect = true;
-                selectedCheckbox.nextElementSibling?.classList.replace('btn-outline-secondary', 'btn-success');
-            } else {
-                allCorrect = false;
-                selectedCheckbox.nextElementSibling?.classList.replace('btn-outline-secondary', 'btn-danger');
-            }
-        });
-
-        // Update feedback and explanation based on the correctness of the answers
-        if (allCorrect && hasSelectedCorrect) {
-            feedback.textContent = 'Poprawna odpowiedź!';
-            feedback.className = 'text-success';
-            setCorrectAnswersCount(prev => prev + 1);
-            const question = reoccurrences.find(q => q.id === currentQuestionData?.id);
-            if (question) question.reoccurrences--;
-        } else {
-            feedback.innerHTML = selectedCheckboxes.length === 0 ? 'Brak odpowiedzi!' : 'Zła odpowiedź!';
-            explanation.textContent = '';
-
-            if (currentQuestionData?.explanation) {
-                explanation.innerHTML = marked.parse(currentQuestionData.explanation.replaceAll('\\(', '\\\\(').replaceAll('\\)', '\\\\)').replaceAll('\\[', '\\\\[').replaceAll('\\]', '\\\\]'));
-                renderMathInElement(explanation);
-            }
-
-            feedback.className = 'text-danger';
-            // Highlight correct answers that were not selected
-            buttonContainer.querySelectorAll<HTMLInputElement>('input[value="true"]').forEach(correctCheckbox => {
-                correctCheckbox.nextElementSibling?.classList.replace('btn-outline-secondary', 'btn-success');
-            });
-            setWrongAnswersCount(prev => prev + 1);
-            const question = reoccurrences.find(q => q.id === currentQuestionData?.id);
-            if (question) question.reoccurrences += userSettings.wrongAnswerRepetitions;
-        }
-
-        // Update provided answers and mastered questions count
-        document.getElementById('providedAnswers')!.textContent = (wrongAnswersCount + correctAnswersCount).toString();
-        document.getElementById('masteredQuestions')!.textContent = reoccurrences.filter(q => q.reoccurrences === 0).length.toString();
-        nextButton.textContent = 'Następne';
-        saveProgress();
-        // Send answer checked event to all peers if not remote
-        if (!remote) {
-            sendToAllPeers({
-                type: 'answer_checked'
-            });
+            // Broadcast to peers if needed
+            sendToAllPeers({type: "answer_checked"});
         }
     };
 
     const nextQuestion = (): void => {
-        // Get a random question ID
-        const newQuestionId = getRandomQuestionId();
-        if (newQuestionId) {
-            // Load the question with the obtained ID
-            loadQuestion(newQuestionId);
+        if (!quiz) return;
+        const newQuestion = pickRandomQuestion(quiz, reoccurrences);
+        setSelectedAnswers([]);
+        setQuestionChecked(false);
+        if (newQuestion) {
+            sendToAllPeers({type: "question_update", question: newQuestion, selectedAnswers: []});
+        }
+    };
+
+    const nextAction = (): void => {
+        if (questionChecked) {
+            nextQuestion();
         } else {
-            // Alert the user if all questions are mastered
-            alert('Wszystkie pytania zostały opanowane, zresetuj postępy aby zacząć od nowa.');
+            checkAnswer();
         }
     };
 
-    const copyToClipboard = (): void => {
-        try {
-            // Destructure question and answers from currentQuestionData
-            const {question, answers} = currentQuestionData;
-
-            // Format answers text
-            const answersText = answers.map((answer, idx) => `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${answer.correct ? 'Tak' : 'Nie'})`).join('\n');
-
-            // Combine question and answers into a single text
-            const fullText = `${question}\n\n${answersText}`;
-
-            // Copy the text to the clipboard
-            navigator.clipboard.writeText(fullText).then(() => {
-                // Show success toast notification
-                bootstrap.Toast.getOrCreateInstance(document.getElementById('copiedToast')).show();
-            }).catch(err => {
-                // Log error if copying fails
-                console.error('Nie można skopiować tekstu: ', err);
-            });
-        } catch (error) {
-            // Log error to console
-            console.error('Błąd podczas kopiowania do schowka:', error);
-
-            // Show error toast notification
-            bootstrap.Toast.getOrCreateInstance(document.getElementById('errorToast')).show();
-        }
-    };
-
-    const openInChatGPT = () => {
-        try {
-            // Destructure question and answers from currentQuestionData
-            const {question, answers} = currentQuestionData;
-
-            // Format answers text
-            const answersText = answers.map((answer, idx) => `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${answer.correct ? 'Tak' : 'Nie'})`).join('\n');
-
-            // Combine question and answers into a single text
-            const fullText = `Pytanie: ${question}\n\nOdpowiedzi:\n${answersText}`;
-
-            // Create ChatGPT URL with encoded question and answers
-            const chatGPTUrl = `https://chat.openai.com/?q=${encodeURIComponent(fullText)}`;
-
-            // Open ChatGPT URL in a new tab
-            window.open(chatGPTUrl, '_blank');
-        } catch (error) {
-            // Log error to console
-            console.error('Error opening in ChatGPT:', error);
-
-            // Show error toast notification
-            bootstrap.Toast.getOrCreateInstance(document.getElementById('errorToast')).show();
-        }
-    };
-
-    const initiateContinuity = () => {
-        // Initiate continuity logic
-    };
-
-    const handlePeerConnection = (conn) => {
-        // Handle peer connection logic
-    };
-
-    const handlePeerData = (conn, data) => {
-        // Handle peer data logic
-    };
-
-    const updateContinuityModal = () => {
-        // Update continuity modal logic
-    };
-
-    const handlePeerClose = (conn: any): void => {
-        // Function implementation
-    };
-
-    const getPeerId = (): string => {
-        // Function implementation
-    };
-
-    const connectToPeer = (peerId: string): void => {
-        // Function implementation
-    };
-
-    const updateStudyTime = (): void => {
-        // Get the current time
-        const currentTime = new Date();
-        // Calculate the time difference in seconds
-        const timeDiff = Math.floor((currentTime.getTime() - startTime.getTime()) / 1000);
-        // Update the study time state
-        setStudyTime(timeDiff);
-
-        // Calculate hours, minutes, and seconds
-        const hours = String(Math.floor(timeDiff / 3600)).padStart(2, '0');
-        const minutes = String(Math.floor((timeDiff % 3600) / 60)).padStart(2, '0');
-        const seconds = String(timeDiff % 60).padStart(2, '0');
-
-        // Update the study time display in the UI
-        const studyTimeElement = document.getElementById('studyTime');
-        if (studyTimeElement) {
-            studyTimeElement.textContent = `${hours}:${minutes}:${seconds}`;
-        }
-
-        // Save progress without showing a toast notification
-        saveProgress(false);
-    };
-
-    const handleVersionUpdate = useCallback(() => {
-        const storedVersion = localStorage.getItem(`${quizId}_version`);
-        const localStorageVersion = storedVersion ? parseInt(storedVersion) : quiz?.version || 1;
-
-        // If no version is stored, set the current quiz version in localStorage
-        if (!storedVersion) {
-            localStorage.setItem(`${quizId}_version`, quiz?.version.toString() || "1");
-        }
-
-        // If the quiz version has changed, show a toast notification and update localStorage
-        if (quiz?.version !== localStorageVersion) {
-            setShowToast(prev => ({ ...prev, updated: true }));
-            localStorage.setItem(`${quizId}_version`, quiz?.version.toString() || "1");
-        }
-    }, [quiz, quizId]);
-
-    const shuffleArray = useCallback((array: any[]) => {
-        const shuffled = [...array];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        return shuffled;
+    // ========== Study time ==========
+    const updateStudyTime = useCallback(() => {
+        const diff = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        setStudyTime(diff);
     }, []);
 
-    const reportIncorrectQuestion = useCallback(() => {
-        if (!currentQuestionData) return;
-        const email = quiz?.report_email;
-        if (!email) {
-            alert("Brak adresu e-mail do zgłaszania błędów.");
+    // ========== KeyPress Handling ==========
+    const handleKeyPress = (event: globalThis.KeyboardEvent): void => {
+        // Don’t override user typing in text input (except checkboxes).
+        const target = event.target as HTMLElement;
+        if (
+            target.tagName.toLowerCase() === "input" &&
+            (target as HTMLInputElement).type !== "checkbox"
+        ) {
             return;
         }
-        // Prepare email subject and body with question details
-        const subject = encodeURIComponent(`Testownik - zgłoszenie błędu`);
-        const body = encodeURIComponent(
-            `Pytanie nr ${currentQuestionData.id}:\n${currentQuestionData.question}\n\nOdpowiedzi:\n${currentQuestionData.answers
-                .map(a => `${a.answer} (Poprawna: ${a.correct ? "Tak" : "Nie"})`)
-                .join("\n")}\n\nUwagi:\n`
-        );
-        // Open the default mail client with the prepared email
-        window.open(`mailto:${email}?subject=${subject}&body=${body}`);
-    }, [currentQuestionData, quiz]);
+        const key = event.key.toLowerCase();
 
-    const pingPeers = useCallback(() => {
-        peerConnections.forEach(conn => {
-            if (conn.open) {
-                conn.send({ type: "ping" });
-                // Close connection if no response within 15 seconds
-                setTimeout(() => {
-                    if (!conn.open) {
-                        console.warn("Ping timeout: closing connection.");
-                        conn.close();
-                    }
-                }, 15000);
+        switch (key) {
+            case "enter":
+                // On Enter, trigger nextAction unless we’re focusing a button
+                if (target.tagName.toLowerCase() !== "button") {
+                    nextAction();
+                }
+                break;
+            case "s":
+                nextQuestion();
+                break;
+            case "c":
+                // old logic: show continuity button if user pressed 'c' w/o ctrl
+                if (!event.ctrlKey) {
+                    // no direct DOM manipulation; if you want to show the button forcibly,
+                    // you can either unify it with state or let the user open the modal.
+                    // We can do something like “setShowContinuity(true)” if you had a state
+                    // for that. Or do nothing if the user specifically wants that logic.
+                    // This is demonstration only:
+                    // ...
+                }
+                break;
+            default:
+                break;
+        }
+    };
+
+    // ========== Utility Actions (copy, chatgpt, report) ==========
+    // const copyToClipboard = (): void => {
+    //     try {
+    //         if (!currentQuestion) return;
+    //         const {question, answers} = currentQuestion;
+    //         const answersText = answers
+    //             .map(
+    //                 (answer, idx) =>
+    //                     `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${
+    //                         answer.correct ? "Tak" : "Nie"
+    //                     })`
+    //             )
+    //             .join("\n");
+    //         const fullText = `${question}\n\n${answersText}`;
+    //         navigator.clipboard.writeText(fullText).then(() => {
+    //             setShowCopiedToast(true);
+    //         });
+    //     } catch (error) {
+    //         console.error("Błąd podczas kopiowania do schowka:", error);
+    //         setShowErrorToast(true);
+    //     }
+    // };
+    //
+    // const openInChatGPT = () => {
+    //     try {
+    //         if (!currentQuestion) return;
+    //         const {question, answers} = currentQuestion;
+    //         const answersText = answers
+    //             .map(
+    //                 (answer, idx) =>
+    //                     `Odpowiedź ${idx + 1}: ${answer.answer} (Poprawna: ${
+    //                         answer.correct ? "Tak" : "Nie"
+    //                     })`
+    //             )
+    //             .join("\n");
+    //         const fullText = `Pytanie: ${question}\n\nOdpowiedzi:\n${answersText}`;
+    //         const chatGPTUrl = `https://chat.openai.com/?q=${encodeURIComponent(
+    //             fullText
+    //         )}`;
+    //         window.open(chatGPTUrl, "_blank");
+    //     } catch (error) {
+    //         console.error("Error opening in ChatGPT:", error);
+    //         setShowErrorToast(true);
+    //     }
+    // };
+
+    // const reportIncorrectQuestion = () => {
+    //     if (!currentQuestion || !quiz) {
+    //         alert("Brak pytania do zgłoszenia!");
+    //         return;
+    //     }
+    //     if (!quiz.report_email) {
+    //         alert("Brak adresu e-mail do zgłaszania błędów.");
+    //         return;
+    //     }
+    //
+    //     const subject = encodeURIComponent(`Testownik - zgłoszenie błędu`);
+    //     const body = encodeURIComponent(
+    //         `Pytanie nr ${currentQuestion.id}:\n${currentQuestion.question}\n\nOdpowiedzi:\n` +
+    //         currentQuestion.answers
+    //             .map(
+    //                 (ans) => `${ans.answer} (Poprawna: ${ans.correct ? "Tak" : "Nie"})`
+    //             )
+    //             .join("\n") +
+    //         `\n\nUwagi:\n`
+    //     );
+    //     window.open(`mailto:${quiz.report_email}?subject=${subject}&body=${body}`);
+    // };
+
+
+    interface InitialSyncMessage {
+        type: "initial_sync";
+        startTime: number;
+        correctAnswersCount: number;
+        wrongAnswersCount: number;
+        reoccurrences: Reoccurrence[];
+    }
+
+    interface QuestionUpdateMessage {
+        type: "question_update";
+        question: Question;
+        selectedAnswers: number[];
+    }
+
+    interface AnswerCheckedMessage {
+        type: "answer_checked";
+    }
+
+    interface PingMessage {
+        type: "ping";
+    }
+
+    interface PongMessage {
+        type: "pong";
+    }
+
+    type PeerMessage =
+        | InitialSyncMessage
+        | QuestionUpdateMessage
+        | AnswerCheckedMessage
+        | PingMessage
+        | PongMessage;
+
+    const initiateContinuity = () => {
+        console.log("Initiating continuity...");
+
+        if (peer) {
+            console.warn("Continuity already initialized");
+            return;
+        }
+
+        const userId = localStorage.getItem("user_id");
+        if (!userId) {
+            console.warn("User ID not found, cannot create Peer.");
+            return;
+        }
+
+        const baseId = `${quizId}_${userId}`.replace(/\//g, "");
+        try {
+            const hostPeer = new Peer(baseId, {
+                config: {
+                    iceServers: [
+                        {urls: "stun:stun.l.google.com:19302"},
+                        {urls: "stun:stun1.l.google.com:19302"},
+                        {
+                            urls: "turn:freestun.net:3478",
+                            username: "free",
+                            credential: "free",
+                        },
+                    ],
+                },
+            });
+
+            hostPeer.on("open", (id) => {
+                console.log("Peer opened with ID:", id);
+                setPeer(hostPeer);
+                setIsContinuityHost(true);
+            });
+
+            hostPeer.on("error", (err) => {
+                if (err.type === "unavailable-id") {
+                    console.warn("Unavailable ID, becoming client and connecting to host...");
+                    setIsContinuityHost(false);
+
+                    const clientPeer = new Peer({
+                        config: {
+                            iceServers: [
+                                {urls: "stun:stun.l.google.com:19302"},
+                                {urls: "stun:stun1.l.google.com:19302"},
+                                {
+                                    urls: "turn:freestun.net:3478",
+                                    username: "free",
+                                    credential: "free",
+                                },
+                            ],
+                        },
+                    });
+
+                    clientPeer.on("open", (gid) => {
+                        console.log("Client peer opened with ID:", gid);
+                        setPeer(clientPeer);
+                        connectToPeer(clientPeer, baseId)
+                            .then((conn) => {
+                                console.log("Connected to host as client:", conn.peer);
+                                setShowContinuityConnectedToast(true);
+                                handlePeerConnectionAsClient(conn);
+                            })
+                            .catch((error) => {
+                                console.error("Error connecting to host:", error);
+                                alert("Failed to connect to the host. Please try again.");
+                            });
+                    });
+
+                    clientPeer.on("error", (err2) => {
+                        console.error("Client peer error:", err2);
+                    });
+
+                    clientPeer.on("connection", handlePeerConnectionAsClient);
+                } else {
+                    console.error("Peer error:", err);
+                }
+            });
+
+            hostPeer.on("connection", handlePeerConnectionAsHost);
+        } catch (e) {
+            console.error("Error creating peer:", e);
+        }
+    };
+
+    const connectToPeer = (thePeer: Peer, peerId: string) => {
+        return new Promise<DataConnection>((resolve, reject) => {
+            if (thePeer.open) {
+                doConnect();
+            } else {
+                thePeer.on("open", doConnect);
+                thePeer.on("error", reject);
+            }
+
+            function doConnect() {
+                const conn = thePeer.connect(peerId, {
+                    metadata: {
+                        device: getDeviceFriendlyName(),
+                        type: getDeviceType(),
+                    },
+                });
+                conn.on("open", () => {
+                    setPeerConnections((prev) => [...prev, conn]);
+                    resolve(conn);
+                });
+                conn.on("error", reject);
             }
         });
-    }, [peerConnections]);
+    };
 
-    const gracefullyClosePeerConnection = useCallback(() => {
+    const handlePeerConnectionAsHost = (conn: DataConnection) => {
+        console.log("New client connected:", conn.peer);
+        setPeerConnections((prev) => [...prev, conn]);
+
+        conn.on("open", () => {
+            const currentQuestion = currentQuestionRef.current;
+            const reoccurrences = reoccurrencesRef.current;
+            const wrongAnswersCount = wrongAnswersCountRef.current;
+            const correctAnswersCount = correctAnswersCountRef.current;
+
+            if (currentQuestion) {
+                initialSyncToPeer(conn, currentQuestion, reoccurrences, startTimeRef.current, wrongAnswersCount, correctAnswersCount);
+            } else {
+                console.warn("No current question available for sync.");
+            }
+        });
+
+        conn.on("data", (data) => {
+            handlePeerDataAsHost(conn, data as PeerMessage);
+        });
+
+        conn.on("error", (err) => {
+            console.error("Peer connection error:", err);
+        });
+
+        conn.on("close", () => handlePeerClose(conn));
+    };
+
+    const handlePeerDataAsHost = (conn: DataConnection, data: PeerMessage) => {
+        console.log("Received data from client:", data);
+
+        switch (data.type) {
+            case "question_update":
+                // Update host state based on client's changes
+                setCurrentQuestion(data.question);
+                setQuestionChecked(false);
+                setSelectedAnswers(data.selectedAnswers);
+
+                // Relay changes to other clients
+                sendToAllPeersExcept(conn, {
+                    type: "question_update",
+                    question: data.question,
+                    selectedAnswers: data.selectedAnswers,
+                });
+                break;
+            case "answer_checked":
+                checkAnswer(true);
+                // Relay answer checked to other clients
+                sendToAllPeersExcept(conn, {type: "answer_checked"});
+                break;
+            case "pong":
+                console.log("Received pong from client:", conn.peer);
+                break;
+            default:
+                console.warn("Unknown message type from client:", data.type);
+        }
+    };
+    const handlePeerClose = (conn: DataConnection) => {
+        console.log("Peer disconnected:", conn.peer);
+        setPeerConnections((prev) => prev.filter((c) => c.open));
+        setShowContinuityDisconnectedToast(true);
+
+        // If we are not the host, try to reconnect or do any fallback
+        if (!isContinuityHost && peer && !peer.destroyed) {
+            // We can attempt reconnect logic if you want
+            // ...
+        }
+    };
+
+    const handlePeerConnectionAsClient = (conn: DataConnection) => {
+        console.log("Connected to host:", conn.peer);
+        setPeerConnections((prev) => [...prev, conn]);
+
+        conn.on("data", (data) => {
+            handlePeerDataAsClient(data as PeerMessage);
+        });
+
+        conn.on("error", (err) => {
+            console.error("Peer connection error:", err);
+        });
+
+        conn.on("close", () => handlePeerClose(conn));
+    };
+
+    const handlePeerDataAsClient = (data: PeerMessage) => {
+        console.log("Received data from host:", data);
+
+        switch (data.type) {
+            case "initial_sync":
+                // Synchronize the client state with the host
+                startTimeRef.current = data.startTime;
+                setCorrectAnswersCount(data.correctAnswersCount);
+                setWrongAnswersCount(data.wrongAnswersCount);
+                setReoccurrences(data.reoccurrences);
+                break;
+
+            case "question_update":
+                // Apply changes broadcasted by the host
+                console.log("Applying question update from host:", data.question);
+                setCurrentQuestion(data.question);
+                setQuestionChecked(false);
+                setSelectedAnswers(data.selectedAnswers);
+                break;
+
+            case "answer_checked":
+                checkAnswer(true);
+                break;
+
+            case "ping":
+                sendToPeer(peerConnections[0], {type: "pong"});
+                break;
+
+            default:
+                console.warn("Unknown message type from host:", data.type);
+        }
+    };
+
+    const pingPeers = () => {
+        peerConnections.forEach((conn) => {
+            if (conn.open) {
+                sendToPeer(conn, {type: "ping"});
+                // optional: track timeouts
+                const timeout = setTimeout(() => {
+                    console.warn("Ping timeout, closing connection:", conn.peer);
+                    conn.close();
+                }, PING_TIMEOUT);
+                // If the remote responds with "pong", we can clear t
+                conn.on("data", (data) => {
+                    const message = data as PeerMessage; // Type assertion
+                    if (message.type === "pong") {
+                        clearTimeout(timeout);
+                    }
+                });
+            }
+        });
+    };
+
+    const gracefullyClosePeerConnection = () => {
         if (peer && !peer.destroyed) {
             peer.destroy();
         }
-    }, [peer]);
+    };
 
-    useEffect(() => {
-        window.addEventListener("beforeunload", gracefullyClosePeerConnection);
-        return () => {
-            window.removeEventListener("beforeunload", gracefullyClosePeerConnection);
-        };
-    }, [gracefullyClosePeerConnection]);
-
-    const getDeviceFriendlyName = useCallback(() => {
-        const ua = navigator.userAgent;
-        if (/iPad/.test(ua)) return "iPad";
-        if (/iPhone/.test(ua)) return "iPhone";
-        if (/Macintosh/.test(ua)) return "Mac";
-        if (/Windows/.test(ua)) return "Windows PC";
-        if (/Android/.test(ua)) return "Android";
-        return "Unknown Device";
-    }, []);
-
-    const getDeviceType = useCallback(() => {
-        const ua = navigator.userAgent;
-        if (/iPad|Tablet/.test(ua)) return "tablet";
-        if (/iPhone|Android/.test(ua)) return "mobile";
-        return "desktop";
-    }, []);
-
-    const sendToPeer = useCallback((conn: any, data: any) => {
+    // ========== Peer Utility ==========
+    const sendToPeer = (conn: DataConnection, data: PeerMessage) => {
         if (conn.open) {
             conn.send(data);
-        } else {
-            console.error("Cannot send data: connection is closed.");
         }
-    }, []);
+    };
 
-    const sendToAllPeers = useCallback(
-        (data: any) => {
-            peerConnections.forEach(conn => sendToPeer(conn, data));
-        },
-        [peerConnections, sendToPeer]
-    );
+    const sendToAllPeers = (data: PeerMessage) => {
+        peerConnections.forEach((conn) => {
+            console.log("Sending to peer:", conn.peer, data);
+            sendToPeer(conn, data);
+        });
+    };
 
-    const sendToAllPeersExcept = useCallback(
-        (exceptConn: any, data: any) => {
-            peerConnections.forEach(conn => {
-                if (conn !== exceptConn) {
-                    sendToPeer(conn, data);
-                }
-            });
-        },
-        [peerConnections, sendToPeer]
-    );
+    const sendToAllPeersExcept = (
+        exceptConn: DataConnection | null,
+        data: PeerMessage
+    ) => {
+        peerConnections.forEach((conn) => {
+            if (conn !== exceptConn) {
+                sendToPeer(conn, data);
+            }
+        });
+    };
+
+    const initialSyncToPeer = (conn: DataConnection, currentQuestion: Question, reoccurrences: Reoccurrence[], startTime: number, wrongAnswersCount: number, correctAnswersCount: number) => {
+        console.log("Initial sync to peer:", conn.peer);
+        if (!currentQuestion) return;
+
+        sendToPeer(conn, {
+            type: "initial_sync",
+            startTime,
+            correctAnswersCount,
+            wrongAnswersCount,
+            reoccurrences,
+        });
+
+        sendToPeer(conn, {
+            type: "question_update",
+            question: currentQuestion,
+            selectedAnswers,
+        });
+    };
+
+    // ========== Toast handler ==========
+    const handleToastClose = (toastName: string) => {
+        switch (toastName) {
+            case "copied":
+                setShowCopiedToast(false);
+                break;
+            case "error":
+                setShowErrorToast(false);
+                break;
+            case "continuityConnected":
+                setShowContinuityConnectedToast(false);
+                break;
+            case "continuityDisconnected":
+                setShowContinuityDisconnectedToast(false);
+                break;
+            default:
+                break;
+        }
+    };
+
+    // ========== Render ==========
+    if (loading) {
+        return <div className="text-center mt-5">Ładowanie...</div>;
+    }
 
     return (
         <Container style={{marginTop: 20}}>
             <Row>
-                {loading ? (
-                    <div className="text-center">Ładowanie...</div>
-                ) : (
-                    <>
-                        <Col md={8}>
-                            <TopButtonGroup/>
-                            <QuestionCard question={currentQuestion} selectedAnswers={selectedAnswers}
-                                          setSelectedAnswers={setSelectedAnswers} questionChecked={questionChecked}
-                                          nextAction={nextQuestion}/>
-                        </Col>
-                        <Col md={4}>
-                            <QuizCard/>
-                            <ReactPlayer url='https://www.youtube.com/watch?v=zZ7AimPACzc'
-                                         playing={true}
-                                         muted={true}
-                                         loop={true}
-                                         width="100%"
-                                         height="40rem"
-                            />
-                        </Col>
-                    </>
-                )}
+                <Col md={8}>
+                    <QuestionCard
+                        question={currentQuestion}
+                        selectedAnswers={selectedAnswers}
+                        setSelectedAnswers={(newSelected) => {
+                            // If question is not multiple, unselect everything except the new
+                            if (currentQuestion && !currentQuestion.multiple) {
+                                setSelectedAnswers(newSelected.length > 0 ? [newSelected[0]] : []);
+                                // Also broadcast to peers
+                                if (newSelected.length > 0) {
+                                    sendToAllPeers({
+                                        type: "question_update",
+                                        question: currentQuestion,
+                                        selectedAnswers: [newSelected[0]],
+                                    });
+                                }
+                            } else {
+                                setSelectedAnswers(newSelected);
+                                // If multiple, broadcast each toggle
+                                if (currentQuestion) {
+                                    const last = newSelected[newSelected.length - 1];
+                                    if (typeof last !== "undefined") {
+                                        sendToAllPeers({
+                                            type: "question_update",
+                                            question: currentQuestion,
+                                            selectedAnswers: newSelected,
+                                        });
+                                    }
+                                }
+                            }
+                        }}
+                        questionChecked={questionChecked}
+                        nextAction={nextAction}
+                        isQuizFinished={isQuizFinished}
+                        // Explanation if user wants to see it in the UI
+                        // You can pass a "reportQuestion" callback or "copyToClipboard" callback, etc. if your UI has buttons:
+                        // copyToClipboard={copyToClipboard}
+                        // openInChatGPT={openInChatGPT}
+                        // reportIncorrectQuestion={reportIncorrectQuestion}
+                    />
+                </Col>
+                <Col md={4}>
+                    <QuizInfoCard
+                        quiz={quiz}
+                        correctAnswersCount={correctAnswersCount}
+                        wrongAnswersCount={wrongAnswersCount}
+                        reoccurrences={reoccurrences}
+                        studyTime={studyTime}
+                        resetProgress={resetProgress}
+                    />
+                    {/* Example embedded player if needed
+          <ReactPlayer
+            url="https://www.youtube.com/watch?v=zZ7AimPACzc"
+            playing
+            muted
+            loop
+            width="100%"
+            height="40rem"
+          />
+          */}
+                </Col>
             </Row>
-            <ContinuityModal/>
-            <ToastNotifications/>
-            <div className="position-fixed bottom-0 end-0 m-3" id="bottomButtons">
-                <Button
-                    className="shadow-lg bg-body-tertiary d-none"
-                    id="continuityButton"
-                    data-bs-toggle="modal"
-                    data-bs-target="#continuityModal"
-                >
-                    <Icon icon="flat-color-icons:multiple-devices" id="continuityIcon"/>
-                    <Badge bg="warning" className="position-absolute p-1 translate-middle d-none"
-                           style={{top: '10%', left: '90%'}} id="continuityHostBadge">
-                        <Icon className="d-block" icon="mdi:crown"/>
-                    </Badge>
-                </Button>
-            </div>
+
+            {/* Continuity */}
+            <ContinuityModal
+                peerConnections={peerConnections}
+                isContinuityHost={isContinuityHost}
+            />
+
+            {/* Toasts */}
+            <ToastNotifications
+                showCopiedToast={showCopiedToast}
+                showErrorToast={showErrorToast}
+                showContinuityConnectedToast={showContinuityConnectedToast}
+                showContinuityDisconnectedToast={showContinuityDisconnectedToast}
+                onClose={handleToastClose}
+            />
         </Container>
     );
-}
+};
 
 export default QuizPage;

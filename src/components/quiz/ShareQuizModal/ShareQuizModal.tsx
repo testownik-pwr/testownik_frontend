@@ -56,6 +56,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
 
     useEffect(() => {
         setAccessLevel(quiz.visibility);
+        setIsMaintainerAnonymous(quiz.is_anonymous);
         fetchData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -342,6 +343,7 @@ const ShareQuizModal: React.FC<ShareQuizModalProps> = ({
                         quizMetadata={quiz}
                         usersWithAccess={usersWithAccess}
                         groupsWithAccess={groupsWithAccess}
+                        isMaintainerAnonymous={isMaintainerAnonymous}
                         theme={appContext.theme}
                         handleRemoveUserAccess={handleRemoveUserAccess}
                         handleRemoveGroupAccess={handleRemoveGroupAccess}

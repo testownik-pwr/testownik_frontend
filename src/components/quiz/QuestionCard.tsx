@@ -9,6 +9,7 @@ interface QuestionCardProps {
     setSelectedAnswers: (selectedAnswers: number[]) => void;
     questionChecked: boolean;
     nextAction: () => void;
+    isQuizFinished: boolean;
 }
 
 const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -17,6 +18,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                                                        setSelectedAnswers,
                                                        questionChecked,
                                                        nextAction,
+                                                       isQuizFinished,
                                                    }) => {
     const appContext = useContext(AppContext);
 
@@ -39,6 +41,16 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
     if (!question) {
         return null;
+    }
+
+    if (isQuizFinished) {
+        return (
+            <Card className="border-0 shadow">
+                <Card.Body>
+                    Quiz finished
+                </Card.Body>
+            </Card>
+        );
     }
 
     const getAnswerVariant = (answer: Answer, answerId: number) => {
