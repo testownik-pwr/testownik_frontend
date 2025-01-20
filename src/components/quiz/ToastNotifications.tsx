@@ -1,5 +1,5 @@
 import React from "react";
-import {Toast, ToastContainer} from "react-bootstrap";
+import {Badge, Toast, ToastContainer} from "react-bootstrap";
 import {Icon} from "@iconify/react";
 
 interface ToastNotificationsProps {
@@ -29,10 +29,11 @@ const ToastNotifications: React.FC<ToastNotificationsProps> = ({
 
 
 const renderToast = (show: boolean, title: string, icon: string, body: string, id: string, onClose: (id: string) => void, color = "success") => (
-    <Toast show={show} delay={4000} autohide bg={color} onClose={() => onClose(id)}>
+    <Toast show={show} delay={4000} autohide onClose={() => onClose(id)}>
         <Toast.Header>
             <Icon icon={icon} className="me-2"/>
             <strong className="me-auto">{title}</strong>
+            <Badge bg={color} className="me-2 p-1 rounded-circle"> </Badge>
             <small>Teraz</small>
         </Toast.Header>
         <Toast.Body>{body}</Toast.Body>

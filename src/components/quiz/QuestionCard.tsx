@@ -136,7 +136,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                         <p className="text-danger">Niepoprawna odpowiedź.</p>
                     )}
                 </div>
-                <div className="y-2">
+                <div className="y-2 text-end">
                     {questionChecked ? (
                         <Button variant={appContext.theme.getOppositeTheme()} onClick={nextAction}>
                             Następne pytanie
